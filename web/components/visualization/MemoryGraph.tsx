@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
 import useSWR from "swr";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { api } from "@/lib/api";
 import type { MemoryNode, MemoryLink, Memory } from "@/types/memory";
 import {
@@ -11,6 +11,7 @@ import {
   getBubbleColor,
   getConnectionOpacity,
   getConnectionThickness,
+  truncateText,
 } from "@/lib/utils";
 import { MemoryDetailPanel } from "./MemoryDetailPanel";
 
@@ -18,8 +19,24 @@ interface MemoryGraphProps {
   conversationId: number;
 }
 
+interface NodePosition {
+  x: number;
+  y: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
 export function MemoryGraph({ conversationId }: MemoryGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const simulationRef = useRef<d3.Simulation<MemoryNode, MemoryLink> | null>(null);
+  const nodesRef = useRef<MemoryNode[]>([]);
+  const linksRef = useRef<MemoryLink[]>([]);
+  const positionsRef = useRef<Map<number, NodePosition>>(new Map());
+  const initializedRef = useRef(false);
+  const tooltipRef = useRef<any>(null);
+  
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
@@ -33,9 +50,17 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
     { refreshInterval: 0 }
   );
 
-  // Handle bubble click
-  const handleBubbleClick = (node: MemoryNode) => {
-    // Find the full memory object
+  // Clear selection when clicking empty space
+  const handleClearSelection = useCallback(() => {
+    setSelectedId(null);
+    setSelectedMemory(null);
+    setLinkedMemories([]);
+  }, []);
+
+  // Handle bubble click - update panel without changing positions
+  const handleBubbleClick = useCallback((node: MemoryNode, event: MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering SVG click
+    
     const memory = data?.nodes.find((n) => n.id === node.id);
     if (!memory) return;
 
@@ -45,7 +70,6 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
     } as Memory);
 
     // Use ONLY the connections explicitly stored in this bubble's metadata
-    // NOT all links in the graph that happen to reference this bubble
     const linkedIds = new Set(
       memory.connections.map((conn) => conn.target_id)
     );
@@ -57,16 +81,46 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       } as Memory)
     );
     setLinkedMemories(linked);
-  };
+  }, [data]);
 
   // Handle selecting a linked memory
-  const handleSelectLinkedMemory = (id: number) => {
+  const handleSelectLinkedMemory = useCallback((id: number) => {
     const memory = data?.nodes.find((n) => n.id === id);
     if (!memory) return;
 
     setSelectedId(id);
-    handleBubbleClick(memory as MemoryNode);
-  };
+    // Create a synthetic event for bubble click
+    const syntheticEvent = { stopPropagation: () => {} } as MouseEvent;
+    handleBubbleClick(memory as MemoryNode, syntheticEvent);
+  }, [data, handleBubbleClick]);
+
+  // Zoom control handlers
+  const handleZoomIn = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      d3.select(svgRef.current)
+        .transition()
+        .duration(300)
+        .call(zoomRef.current.scaleBy, 1.5);
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      d3.select(svgRef.current)
+        .transition()
+        .duration(300)
+        .call(zoomRef.current.scaleBy, 0.67);
+    }
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    if (svgRef.current && zoomRef.current) {
+      d3.select(svgRef.current)
+        .transition()
+        .duration(500)
+        .call(zoomRef.current.transform, d3.zoomIdentity);
+    }
+  }, []);
 
   // Handle window resize
   useEffect(() => {
@@ -82,115 +136,115 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // D3 Force Simulation
+  // Initialize D3 simulation only once when data first loads
   useEffect(() => {
-    if (!data || !svgRef.current) return;
+    if (!data || !svgRef.current || initializedRef.current) return;
+    if (data.nodes.length === 0) return;
 
+    initializedRef.current = true;
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Prepare data
-    const nodes: MemoryNode[] = data.nodes.map((node) => ({
-      ...node,
-      type: node.type === "semantic" ? "semantic" : "bubble",
-      radius: getBubbleRadius(node.importance),
-    }));
+    const { width, height } = dimensions;
+
+    // Create tooltip
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "memory-tooltip")
+      .style("position", "fixed")
+      .style("visibility", "hidden")
+      .style("background", "rgba(0, 0, 0, 0.85)")
+      .style("color", "#fff")
+      .style("padding", "10px 14px")
+      .style("border-radius", "8px")
+      .style("font-size", "13px")
+      .style("max-width", "280px")
+      .style("pointer-events", "none")
+      .style("z-index", "1000")
+      .style("box-shadow", "0 4px 12px rgba(0,0,0,0.3)")
+      .style("line-height", "1.4");
+    
+    tooltipRef.current = tooltip;
+
+    // Prepare nodes with positions
+    const nodes: MemoryNode[] = data.nodes.map((node) => {
+      const existingPos = positionsRef.current.get(node.id);
+      return {
+        ...node,
+        type: node.type === "semantic" ? "semantic" : "bubble",
+        radius: getBubbleRadius(node.importance),
+        x: existingPos?.x ?? width / 2 + (Math.random() - 0.5) * 400,
+        y: existingPos?.y ?? height / 2 + (Math.random() - 0.5) * 400,
+        fx: existingPos?.fx,
+        fy: existingPos?.fy,
+      };
+    });
+
+    nodesRef.current = nodes;
 
     // Create a Set of valid node IDs for fast lookup
     const nodeIds = new Set(nodes.map((node) => node.id));
 
     // Filter out links that reference non-existent nodes
     const links: MemoryLink[] = data.links
-      .filter((link) => nodeIds.has(link.source) && nodeIds.has(link.target))
+      .filter((link) => nodeIds.has(link.source as number) && nodeIds.has(link.target as number))
       .map((link) => ({
         source: link.source,
         target: link.target,
         strength: link.strength,
       }));
 
-    // Filter links to only show those EXPLICITLY listed in the selected bubble's connections
-    // NOT all links that happen to reference the selected bubble
-    let visibleLinks: MemoryLink[] = [];
-    if (selectedId) {
-      const selectedNode = nodes.find((n) => n.id === selectedId);
-      if (selectedNode && selectedNode.connections) {
-        // Only show links from this node to its explicitly connected targets
-        const connectedIds = new Set(
-          selectedNode.connections.map((conn) => conn.target_id)
-        );
-        visibleLinks = links.filter((link) => {
-          const sourceId = typeof link.source === 'number' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'number' ? link.target : link.target.id;
-          return sourceId === selectedId && connectedIds.has(targetId);
-        });
-      }
-    }
+    linksRef.current = links;
 
-    // Update visible link count for legend
-    setVisibleLinkCount(visibleLinks.length);
-
-    if (nodes.length === 0) {
-      return;
-    }
-
-    const { width, height } = dimensions;
-
-    // Create simulation - only apply link force if there's a selected bubble
+    // Create simulation - NO link force initially, bubbles stay separate
     const simulation = d3
       .forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-400))
-      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("charge", d3.forceManyBody().strength(-300))
+      .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05))
       .force(
         "collision",
-        d3.forceCollide().radius((d: any) => d.radius + 15)
+        d3.forceCollide().radius((d: any) => d.radius + 20)
       )
-      .velocityDecay(0.7)
-      .alphaDecay(0.05)
+      .velocityDecay(0.4)
+      .alphaDecay(0.02)
       .alphaMin(0.001);
 
-    // Apply link force only if there's a selection
-    if (selectedId && visibleLinks.length > 0) {
-      simulation.force(
-        "link",
-        d3
-          .forceLink(visibleLinks)
-          .id((d: any) => d.id)
-          .distance(150)
-          .strength(1)
-      );
-    }
+    simulationRef.current = simulation;
 
     // Create container
     const g = svg.append("g");
+    gRef.current = g;
 
     // Add zoom behavior
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 3])
+      .scaleExtent([0.2, 4])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
       });
 
+    zoomRef.current = zoom;
     svg.call(zoom);
 
-    // Draw connection lines - only visible links
-    const link = g
-      .append("g")
-      .selectAll("line")
-      .data(visibleLinks)
-      .join("line")
-      .attr("class", "connection-line")
-      .attr("stroke", "#000")
-      .attr("stroke-opacity", (d) => getConnectionOpacity(d.strength))
-      .attr("stroke-width", (d) => getConnectionThickness(d.strength));
+    // Click on SVG background to clear selection
+    svg.on("click", (event) => {
+      if (event.target === svgRef.current) {
+        handleClearSelection();
+      }
+    });
+
+    // Create a container for links (initially empty)
+    g.append("g").attr("class", "links-container");
 
     // Draw bubbles
-    const node = g
-      .append("g")
+    const nodeGroup = g.append("g").attr("class", "nodes-container");
+    
+    const node = nodeGroup
       .selectAll<SVGGElement, MemoryNode>("g")
-      .data(nodes)
+      .data(nodes, (d: any) => d.id)
       .join("g")
       .attr("class", "memory-bubble")
+      .attr("data-id", (d) => d.id)
       .style("cursor", "pointer")
       .style("pointer-events", "all");
 
@@ -201,11 +255,7 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       .attr("fill", (d) => getBubbleColor(d.type, d.created_at))
       .attr("stroke", "#fff")
       .attr("stroke-width", 2)
-      .classed("selected", (d) => d.id === selectedId)
-      .on("click", (_event, d) => {
-        setSelectedId(d.id);
-        handleBubbleClick(d);
-      });
+      .attr("stroke-opacity", 0.8);
 
     // Add text - showing only memory ID
     node
@@ -214,20 +264,52 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       .attr("text-anchor", "middle")
       .attr("dy", "0.35em")
       .attr("font-size", (d) => {
-        // Scale font size based on bubble size
-        const size = d.radius! / 3;
-        return `${Math.max(12, Math.min(size, 20))}px`;
+        const size = d.radius! / 2.5;
+        return `${Math.max(12, Math.min(size, 24))}px`;
       })
       .attr("font-weight", "700")
       .attr("fill", "#fff")
       .attr("pointer-events", "none")
       .style("user-select", "none");
 
-    // Add drag behavior to nodes (after all elements are added)
+    // Add hover tooltip handlers
+    node
+      .on("mouseenter", (event, d) => {
+        tooltip
+          .style("visibility", "visible")
+          .html(`
+            <div style="font-weight: 600; margin-bottom: 6px; color: ${getBubbleColor(d.type, d.created_at)}">
+              Memory #${d.id} · ${d.type === "semantic" ? "Semantic Fact" : "Episodic Bubble"}
+            </div>
+            <div style="color: #e0e0e0">${truncateText(d.text, 200)}</div>
+            ${d.connections && d.connections.length > 0 ? 
+              `<div style="margin-top: 8px; font-size: 11px; color: #999">
+                ${d.connections.length} connection${d.connections.length !== 1 ? 's' : ''}
+              </div>` : ''
+            }
+          `);
+      })
+      .on("mousemove", (event) => {
+        tooltip
+          .style("top", (event.clientY - 10) + "px")
+          .style("left", (event.clientX + 15) + "px");
+      })
+      .on("mouseleave", () => {
+        tooltip.style("visibility", "hidden");
+      });
+
+    // Add click handler
+    node.on("click", (event: MouseEvent, d) => {
+      setSelectedId(d.id);
+      handleBubbleClick(d, event);
+    });
+
+    // Add drag behavior
     node.call(
       d3
         .drag<SVGGElement, MemoryNode>()
         .on("start", (event, d) => {
+          tooltip.style("visibility", "hidden"); // Hide tooltip during drag
           if (!event.active) simulation.alphaTarget(0.1).restart();
           d.fx = d.x;
           d.fy = d.y;
@@ -238,49 +320,24 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
         })
         .on("end", (event, d) => {
           if (!event.active) simulation.alphaTarget(0);
-          // Keep position fixed after drag
+          // Keep fixed position
           d.fx = d.x;
           d.fy = d.y;
+          // Save position
+          positionsRef.current.set(d.id, { x: d.x!, y: d.y!, fx: d.fx, fy: d.fy });
         })
     );
 
     // Update positions on simulation tick
     simulation.on("tick", () => {
-      // If a bubble is selected, pull connected nodes closer
-      if (selectedId) {
-        const selectedNode = nodes.find((n) => n.id === selectedId);
-        if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
-          const sx = selectedNode.x;
-          const sy = selectedNode.y;
-
-          visibleLinks.forEach((link: any) => {
-            const connectedNode =
-              link.source.id === selectedId ? link.target : link.source;
-
-            if (typeof connectedNode.x === 'number' && typeof connectedNode.y === 'number') {
-              // Pull connected node closer to selected node
-              const dx = sx - connectedNode.x;
-              const dy = sy - connectedNode.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              const targetDistance = 150; // Desired distance
-
-              if (distance > targetDistance) {
-                const factor = 0.1; // Adjustment speed
-                connectedNode.x += dx * factor;
-                connectedNode.y += dy * factor;
-              }
-            }
-          });
-        }
-      }
-
-      link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
-
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+      
+      // Save positions
+      nodes.forEach((d) => {
+        if (d.x !== undefined && d.y !== undefined) {
+          positionsRef.current.set(d.id, { x: d.x, y: d.y, fx: d.fx, fy: d.fy });
+        }
+      });
     });
 
     // Freeze positions after simulation settles
@@ -288,13 +345,235 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       nodes.forEach((d) => {
         d.fx = d.x;
         d.fy = d.y;
+        if (d.x !== undefined && d.y !== undefined) {
+          positionsRef.current.set(d.id, { x: d.x, y: d.y, fx: d.fx, fy: d.fy });
+        }
       });
     });
 
     return () => {
       simulation.stop();
+      tooltip.remove();
     };
-  }, [data, dimensions, selectedId]);
+  }, [data, dimensions, handleBubbleClick, handleClearSelection]);
+
+  // Update connections and highlighting when selection changes
+  useEffect(() => {
+    if (!gRef.current || !nodesRef.current.length) return;
+
+    const g = gRef.current;
+    const nodes = nodesRef.current;
+    const links = linksRef.current;
+
+    // Get the selected node's explicit connections
+    let visibleLinks: MemoryLink[] = [];
+    let connectedNodeIds = new Set<number>();
+
+    if (selectedId) {
+      const selectedNode = nodes.find((n) => n.id === selectedId);
+      if (selectedNode && selectedNode.connections) {
+        connectedNodeIds = new Set(
+          selectedNode.connections.map((conn) => conn.target_id)
+        );
+        
+        // Only show links from this node to its explicitly connected targets
+        visibleLinks = links.filter((link) => {
+          const sourceId = typeof link.source === 'number' ? link.source : (link.source as any).id;
+          const targetId = typeof link.target === 'number' ? link.target : (link.target as any).id;
+          return sourceId === selectedId && connectedNodeIds.has(targetId);
+        });
+      }
+    }
+
+    setVisibleLinkCount(visibleLinks.length);
+
+    // Update connection lines with smooth animation
+    const linksContainer = g.select(".links-container");
+    
+    const linkSelection = linksContainer
+      .selectAll<SVGLineElement, MemoryLink>("line")
+      .data(visibleLinks, (d: any) => {
+        const sourceId = typeof d.source === 'number' ? d.source : d.source.id;
+        const targetId = typeof d.target === 'number' ? d.target : d.target.id;
+        return `${sourceId}-${targetId}`;
+      });
+
+    // Remove old links with fade out
+    linkSelection.exit()
+      .transition()
+      .duration(300)
+      .attr("stroke-opacity", 0)
+      .remove();
+
+    // Add new links with animation
+    const newLinks = linkSelection.enter()
+      .append("line")
+      .attr("class", "connection-line")
+      .attr("stroke", "#555")
+      .attr("stroke-width", (d) => getConnectionThickness(d.strength) + 1)
+      .attr("stroke-linecap", "round")
+      .attr("stroke-opacity", 0)
+      .attr("x1", (d: any) => {
+        const source = typeof d.source === 'number' 
+          ? nodes.find(n => n.id === d.source) 
+          : d.source;
+        return source?.x ?? 0;
+      })
+      .attr("y1", (d: any) => {
+        const source = typeof d.source === 'number' 
+          ? nodes.find(n => n.id === d.source) 
+          : d.source;
+        return source?.y ?? 0;
+      })
+      .attr("x2", (d: any) => {
+        const target = typeof d.target === 'number' 
+          ? nodes.find(n => n.id === d.target) 
+          : d.target;
+        return target?.x ?? 0;
+      })
+      .attr("y2", (d: any) => {
+        const target = typeof d.target === 'number' 
+          ? nodes.find(n => n.id === d.target) 
+          : d.target;
+        return target?.y ?? 0;
+      });
+
+    // Animate new links appearing
+    newLinks
+      .transition()
+      .duration(400)
+      .attr("stroke-opacity", (d) => getConnectionOpacity(d.strength) + 0.3);
+
+    // Update existing links positions
+    linkSelection.merge(newLinks)
+      .attr("x1", (d: any) => {
+        const source = typeof d.source === 'number' 
+          ? nodes.find(n => n.id === d.source) 
+          : d.source;
+        return source?.x ?? 0;
+      })
+      .attr("y1", (d: any) => {
+        const source = typeof d.source === 'number' 
+          ? nodes.find(n => n.id === d.source) 
+          : d.source;
+        return source?.y ?? 0;
+      })
+      .attr("x2", (d: any) => {
+        const target = typeof d.target === 'number' 
+          ? nodes.find(n => n.id === d.target) 
+          : d.target;
+        return target?.x ?? 0;
+      })
+      .attr("y2", (d: any) => {
+        const target = typeof d.target === 'number' 
+          ? nodes.find(n => n.id === d.target) 
+          : d.target;
+        return target?.y ?? 0;
+      });
+
+    // Update bubble highlighting and dimming
+    g.selectAll<SVGGElement, MemoryNode>(".memory-bubble")
+      .each(function(d) {
+        const isSelected = d.id === selectedId;
+        const isConnected = connectedNodeIds.has(d.id);
+        const hasSelection = selectedId !== null;
+        
+        // Determine if this bubble should be dimmed
+        const shouldDim = hasSelection && !isSelected && !isConnected;
+        
+        d3.select(this)
+          .select("circle")
+          .classed("selected", isSelected)
+          .classed("dimmed", shouldDim)
+          .transition()
+          .duration(300)
+          .attr("stroke", isSelected ? "#333" : (isConnected ? "#666" : "#fff"))
+          .attr("stroke-width", isSelected ? 4 : (isConnected ? 3 : 2))
+          .attr("stroke-opacity", isSelected || isConnected ? 1 : 0.8)
+          .attr("opacity", shouldDim ? 0.4 : 1);
+
+        // Also dim the text
+        d3.select(this)
+          .select("text")
+          .transition()
+          .duration(300)
+          .attr("opacity", shouldDim ? 0.4 : 1);
+      });
+
+    // Smoothly move connected bubbles closer to selected bubble
+    if (selectedId && connectedNodeIds.size > 0) {
+      const selectedNode = nodes.find(n => n.id === selectedId);
+      if (selectedNode && selectedNode.x !== undefined && selectedNode.y !== undefined) {
+        const sx = selectedNode.x;
+        const sy = selectedNode.y;
+        const targetDistance = 180; // Desired distance between connected bubbles
+
+        // Animate connected nodes closer
+        connectedNodeIds.forEach(connectedId => {
+          const connectedNode = nodes.find(n => n.id === connectedId);
+          if (connectedNode && connectedNode.x !== undefined && connectedNode.y !== undefined) {
+            const dx = sx - connectedNode.x;
+            const dy = sy - connectedNode.y;
+            const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+            if (currentDistance > targetDistance) {
+              // Calculate new position
+              const ratio = targetDistance / currentDistance;
+              const newX = sx - dx * ratio;
+              const newY = sy - dy * ratio;
+
+              // Update node position
+              connectedNode.x = newX;
+              connectedNode.y = newY;
+              connectedNode.fx = newX;
+              connectedNode.fy = newY;
+
+              // Animate the bubble to new position
+              g.select(`.memory-bubble[data-id="${connectedId}"]`)
+                .transition()
+                .duration(500)
+                .ease(d3.easeQuadOut)
+                .attr("transform", `translate(${newX},${newY})`);
+
+              // Save new position
+              positionsRef.current.set(connectedId, { x: newX, y: newY, fx: newX, fy: newY });
+            }
+          }
+        });
+
+        // Update link positions after movement
+        setTimeout(() => {
+          linksContainer.selectAll<SVGLineElement, MemoryLink>("line")
+            .transition()
+            .duration(300)
+            .attr("x1", (d: any) => {
+              const source = typeof d.source === 'number' 
+                ? nodes.find(n => n.id === d.source) 
+                : d.source;
+              return source?.x ?? 0;
+            })
+            .attr("y1", (d: any) => {
+              const source = typeof d.source === 'number' 
+                ? nodes.find(n => n.id === d.source) 
+                : d.source;
+              return source?.y ?? 0;
+            })
+            .attr("x2", (d: any) => {
+              const target = typeof d.target === 'number' 
+                ? nodes.find(n => n.id === d.target) 
+                : d.target;
+              return target?.x ?? 0;
+            })
+            .attr("y2", (d: any) => {
+              const target = typeof d.target === 'number' 
+                ? nodes.find(n => n.id === d.target) 
+                : d.target;
+              return target?.y ?? 0;
+            });
+        }, 100);
+      }
+    }
+  }, [selectedId]);
 
   // Loading state
   if (isLoading) {
@@ -347,6 +626,31 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
         style={{ touchAction: "none" }}
       />
 
+      {/* Zoom Controls */}
+      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded-lg shadow-lg flex flex-col">
+        <button
+          onClick={handleZoomIn}
+          className="p-2 hover:bg-muted transition-colors rounded-t-lg border-b border-border"
+          title="Zoom in"
+        >
+          <ZoomIn className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="p-2 hover:bg-muted transition-colors border-b border-border"
+          title="Zoom out"
+        >
+          <ZoomOut className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <button
+          onClick={handleResetView}
+          className="p-2 hover:bg-muted transition-colors rounded-b-lg"
+          title="Reset view"
+        >
+          <RotateCcw className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </div>
+
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
         <h4 className="text-xs font-semibold mb-2">Memory Types</h4>
@@ -356,14 +660,14 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
             <span className="text-xs text-muted-foreground">Semantic Facts</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-[hsl(214,100%,70%)]"></div>
+            <div className="w-4 h-4 rounded-full bg-[hsl(142,76%,36%)]"></div>
             <span className="text-xs text-muted-foreground">Episodic Bubbles</span>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           {data.nodes.length} memories
           {selectedId && visibleLinkCount > 0 && (
-            <> · {visibleLinkCount} connection{visibleLinkCount !== 1 ? 's' : ''} shown</>
+            <> · {visibleLinkCount} connection{visibleLinkCount !== 1 ? 's' : ''}</>
           )}
         </p>
       </div>
@@ -371,7 +675,7 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       {/* Controls hint */}
       <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
         <p className="text-xs text-muted-foreground">
-          Click bubble to view · Drag to move · Scroll to zoom
+          Hover for details · Click to select · Click empty to deselect
         </p>
       </div>
 
@@ -388,4 +692,3 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
     </div>
   );
 }
-

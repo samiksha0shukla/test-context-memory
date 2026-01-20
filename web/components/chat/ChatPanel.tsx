@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, MessageSquarePlus, Trash2, Brain, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import useSWR from "swr";
 import { api } from "@/lib/api";
 import type { Message } from "@/types/memory";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 
 interface ChatPanelProps {
   conversationId: number;
@@ -19,6 +20,19 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch memory stats
+  const { data: memoryData } = useSWR(
+    `/memories/${conversationId}`,
+    () => api.getMemories(conversationId),
+    { refreshInterval: 5000 }
+  );
+
+  // Calculate stats
+  const totalMemories = memoryData?.nodes.length || 0;
+  const semanticCount = memoryData?.nodes.filter(n => n.type === "semantic").length || 0;
+  const episodicCount = totalMemories - semanticCount;
+  const connectionCount = memoryData?.links.length || 0;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,6 +62,7 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
         role: "assistant",
         content: response.response,
         timestamp: new Date().toISOString(),
+        extractedMemories: response.extracted_memories,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -56,7 +71,8 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
       const { semantic, bubbles } = response.extracted_memories;
       if (semantic.length > 0 || bubbles.length > 0) {
         toast.success(
-          `Extracted: ${semantic.length} facts, ${bubbles.length} bubbles`
+          `✓ Extracted: ${semantic.length} facts, ${bubbles.length} bubbles`,
+          { duration: 3000 }
         );
       }
 
@@ -80,8 +96,64 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
     }
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+    toast.info("Chat cleared");
+  };
+
+  const handleNewConversation = () => {
+    setMessages([]);
+    toast.success("Started new conversation");
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Header with stats */}
+      <div className="border-b border-border bg-card px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Brain className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Chat</h2>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewConversation}
+              className="h-8 px-2 text-muted-foreground hover:text-foreground"
+              title="New conversation"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearChat}
+              className="h-8 px-2 text-muted-foreground hover:text-destructive"
+              title="Clear chat"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Memory Stats */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-[hsl(36,100%,70%)]"></div>
+            <span>{semanticCount} facts</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-[hsl(142,76%,36%)]"></div>
+            <span>{episodicCount} bubbles</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            <span>{connectionCount} links</span>
+          </div>
+        </div>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 && (
@@ -103,13 +175,13 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
           <div
             key={idx}
             className={cn(
-              "flex message-enter",
-              message.role === "user" ? "justify-end" : "justify-start"
+              "flex flex-col message-enter",
+              message.role === "user" ? "items-end" : "items-start"
             )}
           >
             <div
               className={cn(
-                "max-w-[80%] rounded-lg px-4 py-3",
+                "max-w-[85%] rounded-lg px-4 py-3",
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-foreground"
@@ -117,6 +189,25 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
             </div>
+            
+            {/* Timestamp */}
+            <span className="text-[10px] text-muted-foreground mt-1 px-1">
+              {message.timestamp ? formatRelativeTime(message.timestamp) : ""}
+            </span>
+            
+            {/* Memory extraction indicator */}
+            {message.role === "assistant" && message.extractedMemories && (
+              (message.extractedMemories.semantic.length > 0 || 
+               message.extractedMemories.bubbles.length > 0) && (
+                <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-emerald-600">
+                  <Sparkles className="w-3 h-3" />
+                  <span>
+                    +{message.extractedMemories.semantic.length} facts, 
+                    +{message.extractedMemories.bubbles.length} bubbles
+                  </span>
+                </div>
+              )
+            )}
           </div>
         ))}
 

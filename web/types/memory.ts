@@ -32,4 +32,8 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp?: string;
+  extractedMemories?: {
+    semantic: string[];
+    bubbles: string[];
+  };
 }
