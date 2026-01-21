@@ -90,29 +90,27 @@
 .memory-bubble {
   cursor: pointer;
   pointer-events: all;
-  transition: transform 0.3s ease-out;
 }
 
 .memory-bubble circle {
-  transition: all 0.3s ease;
+  transition: filter 0.2s ease, stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
 }
 
 .memory-bubble:hover circle {
-  filter: brightness(1.15);
-  transform: scale(1.02);
+  filter: brightness(1.1);
 }
 
 .memory-bubble.selected circle,
 .memory-bubble circle.selected {
   stroke: #333 !important;
   stroke-width: 4px !important;
-  filter: brightness(1.1);
+  filter: brightness(1.15) drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
 }
 
 /* Connection lines */
 .connection-line {
   pointer-events: none;
-  transition: all 0.4s ease-out;
+  transition: opacity 0.3s ease-in-out;
   stroke-linecap: round;
 }
 
@@ -120,7 +118,7 @@
 .memory-bubble.connected circle {
   stroke: #666 !important;
   stroke-width: 3px !important;
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.25)) brightness(1.1);
 }
 
 /* Chat message animations */

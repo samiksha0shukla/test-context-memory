@@ -196,7 +196,7 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
 
     linksRef.current = links;
 
-    // Create simulation - NO link force initially, bubbles stay separate
+    // Create simulation - runs ONCE for initial layout, then stops permanently
     const simulation = d3
       .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-300))
@@ -206,8 +206,9 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
         d3.forceCollide().radius((d: any) => d.radius + 20)
       )
       .velocityDecay(0.4)
-      .alphaDecay(0.02)
-      .alphaMin(0.001);
+      .alphaDecay(0.05) // Faster decay to stop simulation sooner
+      .alphaMin(0.001)
+      .alpha(1); // Start with full energy for initial layout
 
     simulationRef.current = simulation;
 
@@ -304,35 +305,13 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       handleBubbleClick(d, event);
     });
 
-    // Add drag behavior
-    node.call(
-      d3
-        .drag<SVGGElement, MemoryNode>()
-        .on("start", (event, d) => {
-          tooltip.style("visibility", "hidden"); // Hide tooltip during drag
-          if (!event.active) simulation.alphaTarget(0.1).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on("drag", (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on("end", (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          // Keep fixed position
-          d.fx = d.x;
-          d.fy = d.y;
-          // Save position
-          positionsRef.current.set(d.id, { x: d.x!, y: d.y!, fx: d.fx, fy: d.fy });
-        })
-    );
+    // Drag is DISABLED - bubbles remain in fixed positions
 
     // Update positions on simulation tick
     simulation.on("tick", () => {
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
-      
-      // Save positions
+
+      // Save positions during simulation
       nodes.forEach((d) => {
         if (d.x !== undefined && d.y !== undefined) {
           positionsRef.current.set(d.id, { x: d.x, y: d.y, fx: d.fx, fy: d.fy });
@@ -340,8 +319,11 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
       });
     });
 
-    // Freeze positions after simulation settles
-    simulation.on("end", () => {
+    // Stop simulation after initial layout completes (approx 2 seconds)
+    setTimeout(() => {
+      simulation.stop();
+
+      // FREEZE all bubble positions permanently
       nodes.forEach((d) => {
         d.fx = d.x;
         d.fy = d.y;
@@ -349,7 +331,9 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
           positionsRef.current.set(d.id, { x: d.x, y: d.y, fx: d.fx, fy: d.fy });
         }
       });
-    });
+
+      console.log("✓ Bubble positions frozen - bubbles will no longer move");
+    }, 2000);
 
     return () => {
       simulation.stop();
@@ -477,14 +461,15 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
         const isSelected = d.id === selectedId;
         const isConnected = connectedNodeIds.has(d.id);
         const hasSelection = selectedId !== null;
-        
+
         // Determine if this bubble should be dimmed
         const shouldDim = hasSelection && !isSelected && !isConnected;
-        
+
         d3.select(this)
           .select("circle")
           .classed("selected", isSelected)
           .classed("dimmed", shouldDim)
+          .classed("connected", isConnected && !isSelected)
           .transition()
           .duration(300)
           .attr("stroke", isSelected ? "#333" : (isConnected ? "#666" : "#fff"))
@@ -499,80 +484,6 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
           .duration(300)
           .attr("opacity", shouldDim ? 0.4 : 1);
       });
-
-    // Smoothly move connected bubbles closer to selected bubble
-    if (selectedId && connectedNodeIds.size > 0) {
-      const selectedNode = nodes.find(n => n.id === selectedId);
-      if (selectedNode && selectedNode.x !== undefined && selectedNode.y !== undefined) {
-        const sx = selectedNode.x;
-        const sy = selectedNode.y;
-        const targetDistance = 180; // Desired distance between connected bubbles
-
-        // Animate connected nodes closer
-        connectedNodeIds.forEach(connectedId => {
-          const connectedNode = nodes.find(n => n.id === connectedId);
-          if (connectedNode && connectedNode.x !== undefined && connectedNode.y !== undefined) {
-            const dx = sx - connectedNode.x;
-            const dy = sy - connectedNode.y;
-            const currentDistance = Math.sqrt(dx * dx + dy * dy);
-
-            if (currentDistance > targetDistance) {
-              // Calculate new position
-              const ratio = targetDistance / currentDistance;
-              const newX = sx - dx * ratio;
-              const newY = sy - dy * ratio;
-
-              // Update node position
-              connectedNode.x = newX;
-              connectedNode.y = newY;
-              connectedNode.fx = newX;
-              connectedNode.fy = newY;
-
-              // Animate the bubble to new position
-              g.select(`.memory-bubble[data-id="${connectedId}"]`)
-                .transition()
-                .duration(500)
-                .ease(d3.easeQuadOut)
-                .attr("transform", `translate(${newX},${newY})`);
-
-              // Save new position
-              positionsRef.current.set(connectedId, { x: newX, y: newY, fx: newX, fy: newY });
-            }
-          }
-        });
-
-        // Update link positions after movement
-        setTimeout(() => {
-          linksContainer.selectAll<SVGLineElement, MemoryLink>("line")
-            .transition()
-            .duration(300)
-            .attr("x1", (d: any) => {
-              const source = typeof d.source === 'number' 
-                ? nodes.find(n => n.id === d.source) 
-                : d.source;
-              return source?.x ?? 0;
-            })
-            .attr("y1", (d: any) => {
-              const source = typeof d.source === 'number' 
-                ? nodes.find(n => n.id === d.source) 
-                : d.source;
-              return source?.y ?? 0;
-            })
-            .attr("x2", (d: any) => {
-              const target = typeof d.target === 'number' 
-                ? nodes.find(n => n.id === d.target) 
-                : d.target;
-              return target?.x ?? 0;
-            })
-            .attr("y2", (d: any) => {
-              const target = typeof d.target === 'number' 
-                ? nodes.find(n => n.id === d.target) 
-                : d.target;
-              return target?.y ?? 0;
-            });
-        }, 100);
-      }
-    }
   }, [selectedId]);
 
   // Loading state
