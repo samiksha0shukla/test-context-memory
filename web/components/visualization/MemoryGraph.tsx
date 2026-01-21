@@ -86,8 +86,12 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
   // Handle selecting a linked memory
   const handleSelectLinkedMemory = useCallback((id: number) => {
     const memory = data?.nodes.find((n) => n.id === id);
-    if (!memory) return;
+    if (!memory) {
+      console.warn(`⚠ Cannot find memory with id ${id}`);
+      return;
+    }
 
+    console.log(`✓ Selecting linked memory: ${id}`);
     setSelectedId(id);
     // Create a synthetic event for bubble click
     const syntheticEvent = { stopPropagation: () => {} } as MouseEvent;
@@ -359,13 +363,33 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
         connectedNodeIds = new Set(
           selectedNode.connections.map((conn) => conn.target_id)
         );
-        
-        // Only show links from this node to its explicitly connected targets
-        visibleLinks = links.filter((link) => {
-          const sourceId = typeof link.source === 'number' ? link.source : (link.source as any).id;
-          const targetId = typeof link.target === 'number' ? link.target : (link.target as any).id;
-          return sourceId === selectedId && connectedNodeIds.has(targetId);
+
+        // Create links for ALL connections in metadata, even if not in links array
+        visibleLinks = [];
+        selectedNode.connections.forEach((conn) => {
+          const targetNode = nodes.find(n => n.id === conn.target_id);
+          if (targetNode) {
+            // Try to find existing link first
+            const existingLink = links.find((link) => {
+              const sourceId = typeof link.source === 'number' ? link.source : (link.source as any).id;
+              const targetId = typeof link.target === 'number' ? link.target : (link.target as any).id;
+              return sourceId === selectedId && targetId === conn.target_id;
+            });
+
+            if (existingLink) {
+              visibleLinks.push(existingLink);
+            } else {
+              // Create new link if it doesn't exist in links array
+              visibleLinks.push({
+                source: selectedId,
+                target: conn.target_id,
+                strength: conn.score || 0.5
+              });
+            }
+          }
         });
+
+        console.log(`✓ Bubble ${selectedId} - Connections in data: ${selectedNode.connections.length}, Lines rendered: ${visibleLinks.length}`);
       }
     }
 
