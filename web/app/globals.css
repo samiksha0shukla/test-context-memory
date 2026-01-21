@@ -4,26 +4,27 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    /* Pickle OS warm, minimal aesthetic */
+    --background: 40 15% 98%;        /* Warm off-white #FAFAF8 */
+    --foreground: 0 0% 11%;          /* Dark gray/black #1C1C1C */
+    --card: 40 20% 99%;              /* Slightly warmer white */
+    --card-foreground: 0 0% 11%;
+    --popover: 40 20% 99%;
+    --popover-foreground: 0 0% 11%;
+    --primary: 0 0% 11%;             /* Dark text */
+    --primary-foreground: 40 15% 98%;
+    --secondary: 40 10% 96%;         /* Subtle gray */
+    --secondary-foreground: 0 0% 11%;
+    --muted: 40 10% 95%;             /* Light gray with warmth */
+    --muted-foreground: 0 0% 42%;    /* Medium gray #6B6B6B */
+    --accent: 36 100% 70%;           /* Warm accent (amber) */
+    --accent-foreground: 0 0% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --border: 40 8% 92%;             /* Subtle warm border */
+    --input: 40 8% 94%;
+    --ring: 36 100% 70%;             /* Warm focus ring */
+    --radius: 12px;                  /* Larger, softer radius */
 
     /* Custom Pickle OS-inspired colors */
     --bubble-blue: 214 100% 70%;
@@ -63,7 +64,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -153,13 +157,10 @@
   animation: slide-in-right 0.3s ease-out;
 }
 
-/* Graph canvas */
+/* Graph canvas - warm, clean background */
 .graph-canvas {
-  background-color: hsl(0 0% 98%);
-  background-image:
-    linear-gradient(hsl(0 0% 95%) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(0 0% 95%) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: hsl(40 15% 98%);
+  /* Removed grid pattern for cleaner Pickle OS look */
 }
 
 /* Loading states */

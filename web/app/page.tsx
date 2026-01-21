@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import dynamic from "next/dynamic";
+import { Logo } from "@/components/ui/Logo";
 
 // Dynamic import to avoid SSR issues with D3
 const MemoryGraph = dynamic(
@@ -29,28 +30,18 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-bubble-blue/20 to-bubble-amber/20">
-            <Brain className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">ContextMemory</h1>
-            <p className="text-sm text-muted-foreground">
-              Memory bubbles for AI conversations
-            </p>
-          </div>
-        </div>
+      {/* Minimal Header with Logo */}
+      <header className="px-6 py-4">
+        <Logo size={32} showText={true} />
       </header>
 
-      {/* Main Content - Split View */}
+      {/* Main Content - Clean Split View */}
       <main className="flex flex-1 overflow-hidden relative">
         {/* Left: Chat Panel */}
         <div
           className={`${
-            isChatOpen ? 'w-full md:w-1/2 lg:w-2/5' : 'w-0'
-          } border-r border-border flex flex-col bg-card transition-all duration-300 overflow-hidden`}
+            isChatOpen ? 'w-full md:w-[35%]' : 'w-0'
+          } flex flex-col transition-all duration-300 overflow-hidden`}
         >
           <ChatPanel
             conversationId={conversationId}
@@ -60,20 +51,20 @@ export default function Home() {
 
         {/* Right: Memory Visualization */}
         <div className={`${
-          isChatOpen ? 'hidden md:flex md:w-1/2 lg:w-3/5' : 'flex w-full'
-        } flex-col bg-background transition-all duration-300`}>
-          <div className="border-b border-border bg-card/50 px-6 py-3 flex items-center justify-between">
+          isChatOpen ? 'hidden md:flex md:w-[65%]' : 'flex w-full'
+        } flex-col transition-all duration-300`}>
+          <div className="px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2 className="text-base font-semibold text-foreground">
                 Memory Network
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Semantic facts (amber) & episodic bubbles (blue)
               </p>
             </div>
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              className="p-2 hover:bg-muted/50 rounded-lg transition-colors"
               aria-label={isChatOpen ? "Close chat" : "Open chat"}
             >
               {isChatOpen ? (

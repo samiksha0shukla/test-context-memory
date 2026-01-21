@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, MessageSquarePlus, Trash2, Brain, Sparkles } from "lucide-react";
+import { Loader2, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import type { Message } from "@/types/memory";
-import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 interface ChatPanelProps {
@@ -21,18 +20,12 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch memory stats
-  const { data: memoryData } = useSWR(
+  // Keep connection alive (data not used in Pickle OS minimal design)
+  useSWR(
     `/memories/${conversationId}`,
     () => api.getMemories(conversationId),
     { refreshInterval: 5000 }
   );
-
-  // Calculate stats
-  const totalMemories = memoryData?.nodes.length || 0;
-  const semanticCount = memoryData?.nodes.filter(n => n.type === "semantic").length || 0;
-  const episodicCount = totalMemories - semanticCount;
-  const connectionCount = memoryData?.links.length || 0;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,21 +60,11 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Show toast for extracted memories
-      const { semantic, bubbles } = response.extracted_memories;
-      if (semantic.length > 0 || bubbles.length > 0) {
-        toast.success(
-          `✓ Extracted: ${semantic.length} facts, ${bubbles.length} bubbles`,
-          { duration: 3000 }
-        );
-      }
-
       // Trigger memory graph refresh
       onMessageSent?.();
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to send message");
-      // Remove the user message on error
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -96,163 +79,92 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
     }
   };
 
-  const handleClearChat = () => {
-    setMessages([]);
-    toast.info("Chat cleared");
-  };
-
-  const handleNewConversation = () => {
-    setMessages([]);
-    toast.success("Started new conversation");
-  };
-
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with stats */}
-      <div className="border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Chat</h2>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNewConversation}
-              className="h-8 px-2 text-muted-foreground hover:text-foreground"
-              title="New conversation"
-            >
-              <MessageSquarePlus className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearChat}
-              className="h-8 px-2 text-muted-foreground hover:text-destructive"
-              title="Clear chat"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-        
-        {/* Memory Stats */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-[hsl(36,100%,70%)]"></div>
-            <span>{semanticCount} facts</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-[hsl(142,76%,36%)]"></div>
-            <span>{episodicCount} bubbles</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            <span>{connectionCount} links</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+    <div className="flex flex-col h-full bg-card">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Send className="w-8 h-8 text-muted-foreground" />
+            <div className="text-sm text-muted-foreground max-w-sm">
+              Start a conversation to see your memory bubbles grow
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              Start a Conversation
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Chat with the AI and watch your memories form a beautiful network
-              of connected bubbles.
-            </p>
           </div>
         )}
 
-        {messages.map((message, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              "flex flex-col message-enter",
-              message.role === "user" ? "items-end" : "items-start"
-            )}
-          >
-            <div
-              className={cn(
-                "max-w-[85%] rounded-lg px-4 py-3",
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              )}
-            >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-            </div>
-            
-            {/* Timestamp */}
-            <span className="text-[10px] text-muted-foreground mt-1 px-1">
-              {message.timestamp ? formatRelativeTime(message.timestamp) : ""}
-            </span>
-            
-            {/* Memory extraction indicator */}
-            {message.role === "assistant" && message.extractedMemories && (
-              (message.extractedMemories.semantic.length > 0 || 
-               message.extractedMemories.bubbles.length > 0) && (
-                <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-emerald-600">
-                  <Sparkles className="w-3 h-3" />
-                  <span>
-                    +{message.extractedMemories.semantic.length} facts, 
-                    +{message.extractedMemories.bubbles.length} bubbles
-                  </span>
+        {messages.length > 0 && (
+          <>
+            {messages.map((message, idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  "flex flex-col message-enter",
+                  message.role === "user" ? "items-end" : "items-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-3",
+                    message.role === "user"
+                      ? "bg-foreground text-background"
+                      : "bg-muted/70 text-foreground"
+                  )}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
                 </div>
-              )
+
+                {/* Timestamp */}
+                <span className="text-xs text-muted-foreground mt-1.5 px-1">
+                  {message.timestamp ? formatRelativeTime(message.timestamp) : ""}
+                </span>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex justify-start message-enter">
+                <div className="bg-muted/70 rounded-2xl px-4 py-3 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Thinking...</span>
+                </div>
+              </div>
             )}
-          </div>
-        ))}
 
-        {isLoading && (
-          <div className="flex justify-start message-enter">
-            <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Thinking...</span>
-            </div>
-          </div>
+            <div ref={messagesEndRef} />
+          </>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t border-border bg-card p-4">
-        <div className="flex gap-2">
+      {/* Minimal Input Area */}
+      <div className="px-6 py-5 border-t border-border/50">
+        <div className="relative">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message... (Enter to send)"
-            className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[80px] max-h-[200px]"
+            placeholder="Talk to your memory"
+            className="w-full resize-none rounded-xl border border-input bg-background/50 px-4 py-3 pr-20 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:border-accent min-h-[56px] max-h-[160px] transition-all"
             disabled={isLoading}
+            rows={1}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="h-auto"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
+
+          {/* Action Buttons */}
+          <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className="p-2 rounded-lg bg-foreground text-background hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+              aria-label="Send message"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowUp className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Press <kbd className="px-1 py-0.5 rounded border bg-muted">Enter</kbd>{" "}
-          to send, <kbd className="px-1 py-0.5 rounded border bg-muted">Shift+Enter</kbd>{" "}
-          for new line
-        </p>
       </div>
     </div>
   );
