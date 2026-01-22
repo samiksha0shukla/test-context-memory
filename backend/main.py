@@ -11,8 +11,13 @@ from typing import List, Dict, Any, Optional, Generator
 from datetime import datetime
 from sqlalchemy.orm import Session
 import json
+import os
+from dotenv import load_dotenv
 
 from openai import OpenAI
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ContextMemory imports
 from contextmemory import (
@@ -28,12 +33,18 @@ from contextmemory.db.models.memory import Memory as MemoryModel
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════
 
-OPENROUTER_API_KEY = "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"
-DATABASE_URL = "postgresql://neondb_owner:npg_HXf1hbaKRBT2@ep-odd-shape-a1aiejrv-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+# Load from environment variables
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
+EXTRACTION_MODEL = os.getenv("EXTRACTION_MODEL", "anthropic/claude-sonnet-4.5")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "openai/text-embedding-3-small")
 
-LLM_MODEL = "openai/gpt-4o-mini"
-EXTRACTION_MODEL = "anthropic/claude-sonnet-4.5"
-EMBEDDING_MODEL = "openai/text-embedding-3-small"
+# Validate required environment variables
+if not OPENROUTER_API_KEY:
+    raise ValueError("OPENROUTER_API_KEY environment variable is required")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required")
 
 # Configure ContextMemory
 configure(
