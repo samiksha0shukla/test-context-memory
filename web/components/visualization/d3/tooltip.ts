@@ -39,6 +39,9 @@ export function attachTooltipHandlers(
 ) {
   nodeSelection
     .on("mouseenter", (event, d) => {
+      // Use validConnectionCount if available, otherwise fallback to connections.length
+      const connectionCount = (d as any).validConnectionCount ?? (d.connections ? d.connections.length : 0);
+
       tooltip
         .style("visibility", "visible")
         .style("opacity", "0")
@@ -47,9 +50,9 @@ export function attachTooltipHandlers(
             Memory #${d.id} · ${d.type === "semantic" ? "Semantic Fact" : "Episodic Bubble"}
           </div>
           <div style="color: #f0f0f0; line-height: 1.6;">${truncateText(d.text, 200)}</div>
-          ${d.connections && d.connections.length > 0 ?
+          ${connectionCount > 0 ?
             `<div style="margin-top: 10px; font-size: 11px; color: #aaa; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-              🔗 ${d.connections.length} connection${d.connections.length !== 1 ? 's' : ''}
+              🔗 ${connectionCount} connection${connectionCount !== 1 ? 's' : ''}
             </div>` : ''
           }
         `);

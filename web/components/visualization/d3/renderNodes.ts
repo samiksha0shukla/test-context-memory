@@ -18,8 +18,17 @@ export function prepareNodes(
   width: number,
   height: number
 ): MemoryNode[] {
+  // Create a set of all node IDs for efficient lookup
+  const nodeIdSet = new Set(rawNodes.map(n => n.id));
+
   return rawNodes.map((node) => {
     const existingPos = positionsRef.get(node.id);
+
+    // Calculate valid connection count (only connections to nodes that exist)
+    const validConnectionCount = node.connections
+      ? node.connections.filter((conn: any) => nodeIdSet.has(conn.target_id)).length
+      : 0;
+
     return {
       ...node,
       type: node.type === "semantic" ? "semantic" : "bubble",
@@ -28,6 +37,7 @@ export function prepareNodes(
       y: existingPos?.y ?? height / 2 + (Math.random() - 0.5) * 400,
       fx: existingPos?.fx,
       fy: existingPos?.fy,
+      validConnectionCount, // Add the valid connection count
     };
   });
 }
