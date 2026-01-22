@@ -3,11 +3,17 @@ export interface ChatRequest {
   conversation_id: number;
 }
 
+export interface ExtractedMemory {
+  id: number;
+  text: string;
+  type: string;
+}
+
 export interface ChatResponse {
   response: string;
   extracted_memories: {
-    semantic: string[];
-    bubbles: string[];
+    semantic: ExtractedMemory[];
+    bubbles: ExtractedMemory[];
   };
   relevant_memories: RelevantMemory[];
 }

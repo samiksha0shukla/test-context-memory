@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Loader2, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { api } from "@/lib/api";
 import type { Message } from "@/types/memory";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -20,7 +20,7 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Keep connection alive (data not used in Pickle OS minimal design)
+  // Keep connection alive and auto-refresh memories
   useSWR(
     `/memories/${conversationId}`,
     () => api.getMemories(conversationId),
@@ -60,7 +60,23 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Trigger memory graph refresh
+      // Show toast for extracted memories with IDs
+      const { semantic, bubbles } = response.extracted_memories;
+      if (semantic.length > 0 || bubbles.length > 0) {
+        const parts = [];
+        if (semantic.length > 0) {
+          const ids = semantic.map(m => `#${m.id}`).join(", ");
+          parts.push(`${semantic.length} fact${semantic.length !== 1 ? 's' : ''} (${ids})`);
+        }
+        if (bubbles.length > 0) {
+          const ids = bubbles.map(m => `#${m.id}`).join(", ");
+          parts.push(`${bubbles.length} bubble${bubbles.length !== 1 ? 's' : ''} (${ids})`);
+        }
+        toast.success(`✓ Extracted: ${parts.join(", ")}`, { duration: 4000 });
+      }
+
+      // Trigger immediate memory graph refresh using SWR mutate
+      mutate(`/memories/${conversationId}`);
       onMessageSent?.();
     } catch (error) {
       console.error("Chat error:", error);
@@ -118,6 +134,26 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
                 <span className="text-xs text-muted-foreground mt-1.5 px-1">
                   {message.timestamp ? formatRelativeTime(message.timestamp) : ""}
                 </span>
+
+                {/* Memory extraction indicator */}
+                {message.role === "assistant" && message.extractedMemories && (
+                  <>
+                    {message.extractedMemories.semantic.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1 px-1 text-xs text-amber-600">
+                        <span>
+                          ✓ Fact{message.extractedMemories.semantic.length !== 1 ? 's' : ''}: {message.extractedMemories.semantic.map(m => `#${m.id}`).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                    {message.extractedMemories.bubbles.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1 px-1 text-xs text-emerald-600">
+                        <span>
+                          ✓ Bubble{message.extractedMemories.bubbles.length !== 1 ? 's' : ''}: {message.extractedMemories.bubbles.map(m => `#${m.id}`).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             ))}
 

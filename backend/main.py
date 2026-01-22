@@ -92,9 +92,14 @@ class ChatRequest(BaseModel):
     message: str
     conversation_id: int = 1
 
+class ExtractedMemory(BaseModel):
+    id: int
+    text: str
+    type: str
+
 class ChatResponse(BaseModel):
     response: str
-    extracted_memories: Dict[str, List[str]]
+    extracted_memories: Dict[str, List[ExtractedMemory]]
     relevant_memories: List[Dict[str, Any]]
 
 class MemoryNode(BaseModel):
@@ -208,12 +213,55 @@ Instructions:
         messages=full_messages,
         conversation_id=request.conversation_id,
     )
-    
+
+    # Get the newly created memory IDs by querying the latest memories
+    semantic_texts = result.get("semantic", []) if result else []
+    bubble_texts = result.get("bubbles", []) if result else []
+
+    # Fetch the IDs of newly created memories
+    extracted_semantic = []
+    extracted_bubbles = []
+
+    if semantic_texts or bubble_texts:
+        # Get recent memories to find the IDs of newly extracted ones
+        recent_memories = (
+            db.query(MemoryModel)
+            .filter(
+                MemoryModel.conversation_id == request.conversation_id,
+                MemoryModel.is_active == True
+            )
+            .order_by(MemoryModel.created_at.desc())
+            .limit(len(semantic_texts) + len(bubble_texts) + 5)
+            .all()
+        )
+
+        # Match semantic facts
+        for text in semantic_texts:
+            for mem in recent_memories:
+                if not mem.is_episodic and mem.memory_text == text:
+                    extracted_semantic.append(ExtractedMemory(
+                        id=mem.id,
+                        text=text,
+                        type="semantic"
+                    ))
+                    break
+
+        # Match episodic bubbles
+        for text in bubble_texts:
+            for mem in recent_memories:
+                if mem.is_episodic and mem.memory_text == text:
+                    extracted_bubbles.append(ExtractedMemory(
+                        id=mem.id,
+                        text=text,
+                        type="bubble"
+                    ))
+                    break
+
     extracted = {
-        "semantic": result.get("semantic", []) if result else [],
-        "bubbles": result.get("bubbles", []) if result else [],
+        "semantic": extracted_semantic,
+        "bubbles": extracted_bubbles,
     }
-    
+
     return ChatResponse(
         response=assistant_response,
         extracted_memories=extracted,

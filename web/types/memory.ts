@@ -28,12 +28,18 @@ export interface MemoryLink {
   strength: number;
 }
 
+export interface ExtractedMemory {
+  id: number;
+  text: string;
+  type: string;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp?: string;
   extractedMemories?: {
-    semantic: string[];
-    bubbles: string[];
+    semantic: ExtractedMemory[];
+    bubbles: ExtractedMemory[];
   };
 }

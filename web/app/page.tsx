@@ -20,12 +20,10 @@ const ChatPanel = dynamic(
 
 export default function Home() {
   const [conversationId] = useState(1);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(true);
 
   const handleMessageSent = () => {
-    // Trigger memory graph refresh
-    setRefreshKey((prev) => prev + 1);
+    // Memory graph will auto-refresh via SWR mutate
   };
 
   return (
@@ -77,7 +75,6 @@ export default function Home() {
           <div className="flex-1 overflow-hidden">
             <MemoryGraph
               conversationId={conversationId}
-              key={refreshKey}
             />
           </div>
         </div>
