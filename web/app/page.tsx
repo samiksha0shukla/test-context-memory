@@ -50,7 +50,7 @@ export default function LandingPage() {
             ContextMemory remembers everything from your conversations. Watch your
             memories grow as beautiful, interconnected bubbles in a living knowledge graph.
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             {isLoading ? null : isAuthenticated ? (
               <Link href="/dashboard">
                 <Button size="lg">
@@ -73,6 +73,13 @@ export default function LandingPage() {
                 </Link>
               </>
             )}
+            {/* Try Demo button - always visible */}
+            <Link href="/demo">
+              <Button size="lg" variant="secondary" className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 border border-amber-500/30">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Try Demo
+              </Button>
+            </Link>
           </div>
         </div>
 

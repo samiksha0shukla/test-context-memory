@@ -11,22 +11,57 @@ export interface NodePosition {
 /**
  * Creates and configures a D3 force simulation
  * The simulation runs briefly for initial layout, then stops permanently
+ * Bubbles are constrained within a circular boundary for a tidy layout
  */
 export function createSimulation(
   nodes: MemoryNode[],
   width: number,
   height: number
 ): d3.Simulation<MemoryNode, MemoryLink> {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  // Calculate radius to fit all nodes in a circular area
+  // Use larger radius to accommodate more spacing
+  const maxRadius = Math.min(width, height) * 0.42;
+  
   return d3
     .forceSimulation(nodes)
-    .force("charge", d3.forceManyBody().strength(-300))
-    .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05))
+    // Repulsion between nodes - stronger for more spacing
+    .force("charge", d3.forceManyBody().strength(-350))
+    // Center gravity - pulls nodes toward center
+    .force("center", d3.forceCenter(centerX, centerY).strength(0.08))
+    // Collision detection - increased padding for more space between bubbles
     .force(
       "collision",
-      d3.forceCollide().radius((d: any) => d.radius + 20)
+      d3.forceCollide().radius((d: any) => d.radius + 35).strength(1)
     )
-    .velocityDecay(0.4)
-    .alphaDecay(0.05) // Faster decay to stop simulation sooner
+    // Radial force - constrains nodes within circular boundary
+    .force(
+      "radial",
+      d3.forceRadial(maxRadius * 0.55, centerX, centerY).strength(0.25)
+    )
+    // Boundary containment - custom force to keep nodes inside circle
+    .force("boundary", () => {
+      nodes.forEach((d) => {
+        if (d.x !== undefined && d.y !== undefined) {
+          const dx = d.x - centerX;
+          const dy = d.y - centerY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const nodeRadius = d.radius || 25;
+          const boundaryRadius = maxRadius - nodeRadius;
+          
+          // If node is outside boundary, push it back
+          if (distance > boundaryRadius) {
+            const angle = Math.atan2(dy, dx);
+            d.x = centerX + Math.cos(angle) * boundaryRadius;
+            d.y = centerY + Math.sin(angle) * boundaryRadius;
+          }
+        }
+      });
+    })
+    .velocityDecay(0.5)
+    .alphaDecay(0.03) // Slower decay for better settling
     .alphaMin(0.001)
     .alpha(1); // Start with full energy for initial layout
 }
