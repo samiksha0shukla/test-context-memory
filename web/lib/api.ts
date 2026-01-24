@@ -236,6 +236,17 @@ export class ContextMemoryAPI {
 
     if (!response.ok) {
       if (response.status === 401) {
+        // Try to refresh token
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          // Retry the request after refreshing
+          const retryResponse = await fetch(`${this.baseUrl}/api/memories`, {
+            credentials: "include",
+          });
+          if (retryResponse.ok) {
+            return retryResponse.json();
+          }
+        }
         throw new Error("Please sign in to continue");
       }
       throw new Error(`Failed to fetch memories: ${response.statusText}`);
