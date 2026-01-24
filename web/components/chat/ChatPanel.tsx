@@ -9,11 +9,10 @@ import type { Message } from "@/types/memory";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 interface ChatPanelProps {
-  conversationId: number;
   onMessageSent?: () => void;
 }
 
-export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
+export function ChatPanel({ onMessageSent }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +21,8 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
 
   // Keep connection alive and auto-refresh memories
   useSWR(
-    `/memories/${conversationId}`,
-    () => api.getMemories(conversationId),
+    "/memories",
+    () => api.getMemories(),
     { refreshInterval: 5000 }
   );
 
@@ -49,7 +48,7 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
     setIsLoading(true);
 
     try {
-      const response = await api.chat(userMessage.content, conversationId);
+      const response = await api.chat(userMessage.content);
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -72,15 +71,15 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
           const ids = bubbles.map(m => `#${m.id}`).join(", ");
           parts.push(`${bubbles.length} bubble${bubbles.length !== 1 ? 's' : ''} (${ids})`);
         }
-        toast.success(`✓ Extracted: ${parts.join(", ")}`, { duration: 4000 });
+        toast.success(`Extracted: ${parts.join(", ")}`, { duration: 4000 });
       }
 
       // Trigger immediate memory graph refresh using SWR mutate
-      mutate(`/memories/${conversationId}`);
+      mutate("/memories");
       onMessageSent?.();
     } catch (error) {
       console.error("Chat error:", error);
-      toast.error("Failed to send message");
+      toast.error(error instanceof Error ? error.message : "Failed to send message");
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -141,14 +140,14 @@ export function ChatPanel({ conversationId, onMessageSent }: ChatPanelProps) {
                     {message.extractedMemories.semantic.length > 0 && (
                       <div className="flex items-center gap-1 mt-1 px-1 text-xs text-amber-600">
                         <span>
-                          ✓ Fact{message.extractedMemories.semantic.length !== 1 ? 's' : ''}: {message.extractedMemories.semantic.map(m => `#${m.id}`).join(", ")}
+                          Fact{message.extractedMemories.semantic.length !== 1 ? 's' : ''}: {message.extractedMemories.semantic.map(m => `#${m.id}`).join(", ")}
                         </span>
                       </div>
                     )}
                     {message.extractedMemories.bubbles.length > 0 && (
                       <div className="flex items-center gap-1 mt-1 px-1 text-xs text-emerald-600">
                         <span>
-                          ✓ Bubble{message.extractedMemories.bubbles.length !== 1 ? 's' : ''}: {message.extractedMemories.bubbles.map(m => `#${m.id}`).join(", ")}
+                          Bubble{message.extractedMemories.bubbles.length !== 1 ? 's' : ''}: {message.extractedMemories.bubbles.map(m => `#${m.id}`).join(", ")}
                         </span>
                       </div>
                     )}

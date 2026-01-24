@@ -24,11 +24,7 @@ import { GraphLegend } from "./components/GraphLegend";
 import { GraphHint } from "./components/GraphHint";
 import { GraphLoading, GraphError, GraphEmpty } from "./components/GraphStates";
 
-interface MemoryGraphProps {
-  conversationId: number;
-}
-
-export function MemoryGraph({ conversationId }: MemoryGraphProps) {
+export function MemoryGraph() {
   // Refs
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
@@ -41,7 +37,7 @@ export function MemoryGraph({ conversationId }: MemoryGraphProps) {
   const tooltipRef = useRef<any>(null);
 
   // Custom hooks
-  const { data, error, isLoading, hasData } = useMemoryData(conversationId);
+  const { data, error, isLoading, hasData } = useMemoryData();
   const dimensions = useGraphDimensions(svgRef);
   const selection = useMemorySelection(data);
   const zoomControls = useZoomControls(svgRef, zoomRef);

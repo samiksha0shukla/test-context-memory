@@ -12,30 +12,37 @@ from contextmemory.db.models.memory import Memory as MemoryModel
 from database import get_db
 from schemas import MemoriesResponse, MemoryNode
 from utils import ensure_conversation_exists, get_memory_connections
+from auth.dependencies import get_current_user
+from models.user import User
 
 
 router = APIRouter(prefix="/api", tags=["memories"])
 
 
-@router.get("/memories/{conversation_id}", response_model=MemoriesResponse)
-async def get_memories(conversation_id: int, db: Session = Depends(get_db)):
+@router.get("/memories", response_model=MemoriesResponse)
+async def get_memories(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """
-    Get all memories for a conversation as nodes and links for visualization.
+    Get all memories for the authenticated user as nodes and links for visualization.
+    Uses user.id as conversation_id for memory isolation.
     """
+    conversation_id = user.id
     ensure_conversation_exists(db, conversation_id)
-    
+
     all_memories = db.query(MemoryModel).filter(
         MemoryModel.conversation_id == conversation_id,
         MemoryModel.is_active == True
     ).all()
-    
+
     nodes = []
     links = []
     seen_links = set()
-    
+
     for mem in all_memories:
         connections = get_memory_connections(mem)
-        
+
         node = MemoryNode(
             id=mem.id,
             text=mem.memory_text,
@@ -45,7 +52,7 @@ async def get_memories(conversation_id: int, db: Session = Depends(get_db)):
             connections=connections,
         )
         nodes.append(node)
-        
+
         # Create links (avoid duplicates)
         for conn in connections:
             target_id = conn["target_id"]
@@ -58,27 +65,38 @@ async def get_memories(conversation_id: int, db: Session = Depends(get_db)):
                     "target": target_id,
                     "strength": conn["score"],
                 })
-    
+
     return MemoriesResponse(nodes=nodes, links=links)
 
 
 @router.get("/memory/{memory_id}")
-async def get_memory(memory_id: int, db: Session = Depends(get_db)):
+async def get_memory(
+    memory_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """
     Get details for a single memory including connected memories.
+    Only returns memories belonging to the authenticated user.
     """
-    mem = db.query(MemoryModel).filter(MemoryModel.id == memory_id).first()
-    
+    conversation_id = user.id
+
+    mem = db.query(MemoryModel).filter(
+        MemoryModel.id == memory_id,
+        MemoryModel.conversation_id == conversation_id,
+    ).first()
+
     if not mem:
         raise HTTPException(status_code=404, detail="Memory not found")
-    
+
     connections = get_memory_connections(mem)
-    
+
     # Fetch connected memories
     connected_memories = []
     for conn in connections:
         connected_mem = db.query(MemoryModel).filter(
-            MemoryModel.id == conn["target_id"]
+            MemoryModel.id == conn["target_id"],
+            MemoryModel.conversation_id == conversation_id,
         ).first()
         if connected_mem:
             connected_memories.append({
@@ -88,7 +106,7 @@ async def get_memory(memory_id: int, db: Session = Depends(get_db)):
                 "score": conn["score"],
                 "created_at": connected_mem.created_at.isoformat() if connected_mem.created_at else "",
             })
-    
+
     return {
         "id": mem.id,
         "text": mem.memory_text,
@@ -101,12 +119,24 @@ async def get_memory(memory_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/memory/{memory_id}")
-async def delete_memory(memory_id: int, db: Session = Depends(get_db)):
-    """Delete a memory."""
-    mem = db.query(MemoryModel).filter(MemoryModel.id == memory_id).first()
+async def delete_memory(
+    memory_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Delete a memory belonging to the authenticated user.
+    """
+    conversation_id = user.id
+
+    mem = db.query(MemoryModel).filter(
+        MemoryModel.id == memory_id,
+        MemoryModel.conversation_id == conversation_id,
+    ).first()
+
     if not mem:
         raise HTTPException(status_code=404, detail="Memory not found")
-    
+
     db.delete(mem)
     db.commit()
     return {"status": "deleted", "id": memory_id}

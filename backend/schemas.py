@@ -14,7 +14,6 @@ from typing import List, Dict, Any
 
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: int = 1
 
 
 # ═══════════════════════════════════════════════════════

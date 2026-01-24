@@ -1,6 +1,35 @@
+// Auth types
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  is_active: boolean;
+}
+
+export interface SignUpRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface SignInRequest {
+  email: string;
+  password: string;
+}
+
+export interface ApiKeyStatus {
+  has_key: boolean;
+  is_valid: boolean;
+}
+
+export interface ValidateApiKeyResponse {
+  valid: boolean;
+  message: string;
+}
+
+// Chat types
 export interface ChatRequest {
   message: string;
-  conversation_id: number;
 }
 
 export interface ExtractedMemory {

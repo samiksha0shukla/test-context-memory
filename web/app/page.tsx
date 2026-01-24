@@ -1,92 +1,124 @@
 "use client";
 
-import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { Brain, Sparkles, Shield, ArrowRight } from "lucide-react";
 
-// Dynamic import to avoid SSR issues with D3
-const MemoryGraph = dynamic(
-  () => import("@/components/visualization/MemoryGraph").then((mod) => mod.MemoryGraph),
-  { ssr: false, loading: () => <div className="flex items-center justify-center h-full">
-    <div className="text-muted-foreground">Loading visualization...</div>
-  </div> }
-);
-
-const ChatPanel = dynamic(
-  () => import("@/components/chat/ChatPanel").then((mod) => mod.ChatPanel),
-  { ssr: false }
-);
-
-export default function Home() {
-  const [conversationId] = useState(1);
-  const [isChatOpen, setIsChatOpen] = useState(true);
-  const userName = "Samiksha Shukla"; // Will be dynamic with auth
-
-  const handleMessageSent = () => {
-    // Memory graph will auto-refresh via SWR mutate
-  };
+export default function LandingPage() {
+  const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Top Navbar - thin, matching reference image exactly */}
-      <nav className="flex items-center justify-between h-14 px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm flex-shrink-0">
-        {/* Left: Logo + Panel Toggle */}
-        <div className="flex items-center gap-4">
-          <Logo size={28} showText={false} />
-
-          {/* Panel Toggle Button */}
-          <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className="p-1.5 hover:bg-muted/50 rounded-md transition-colors"
-            aria-label={isChatOpen ? "Close chat" : "Open chat"}
-          >
-            {isChatOpen ? (
-              <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/50">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <Logo size={32} />
+          <div className="flex items-center gap-4">
+            {isLoading ? null : isAuthenticated ? (
+              <Link href="/dashboard">
+                <Button>
+                  Go to Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             ) : (
-              <PanelLeftOpen className="w-4 h-4 text-muted-foreground" />
+              <>
+                <Link href="/signin">
+                  <Button variant="ghost">Sign In</Button>
+                </Link>
+                <Link href="/signup">
+                  <Button>Get Started</Button>
+                </Link>
+              </>
             )}
-          </button>
-        </div>
-
-        {/* Right: User's Space */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            {userName}'s space
-          </span>
-
-          {/* User Avatar/Initial */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-semibold">
-            {userName.split(' ').map(n => n[0]).join('')}
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Chat Panel */}
-        <div
-          className={`${
-            isChatOpen ? 'w-full md:w-[35%]' : 'w-0'
-          } flex flex-col transition-all duration-300 overflow-hidden`}
-        >
-          <ChatPanel
-            conversationId={conversationId}
-            onMessageSent={handleMessageSent}
-          />
-        </div>
-
-        {/* Right: Memory Visualization */}
-        <div className={`${
-          isChatOpen ? 'hidden md:flex md:w-[65%]' : 'flex w-full'
-        } flex-col transition-all duration-300`}>
-          <div className="flex-1 overflow-hidden w-full h-full">
-            <MemoryGraph
-              conversationId={conversationId}
-            />
+      {/* Hero Section */}
+      <main className="container mx-auto px-6 py-20">
+        <div className="text-center max-w-3xl mx-auto space-y-8">
+          <h1 className="text-5xl font-bold tracking-tight">
+            AI Conversations with{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+              Perfect Memory
+            </span>
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            ContextMemory remembers everything from your conversations. Watch your
+            memories grow as beautiful, interconnected bubbles in a living knowledge graph.
+          </p>
+          <div className="flex justify-center gap-4">
+            {isLoading ? null : isAuthenticated ? (
+              <Link href="/dashboard">
+                <Button size="lg">
+                  Open Dashboard
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/signup">
+                  <Button size="lg">
+                    Start Free
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Link href="/signin">
+                  <Button size="lg" variant="outline">
+                    Sign In
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      </div>
+
+        {/* Features */}
+        <div className="mt-24 grid md:grid-cols-3 gap-8">
+          <div className="p-6 rounded-lg border border-border bg-card">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
+              <Brain className="w-6 h-6 text-amber-500" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Semantic Memory</h3>
+            <p className="text-muted-foreground">
+              Automatically extracts and stores facts, preferences, and knowledge from your
+              conversations.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-lg border border-border bg-card">
+            <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
+              <Sparkles className="w-6 h-6 text-orange-500" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Visual Memory Graph</h3>
+            <p className="text-muted-foreground">
+              See your memories as beautiful, interactive bubbles. Explore connections and
+              relationships between ideas.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-lg border border-border bg-card">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-green-500" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Your Data, Your Key</h3>
+            <p className="text-muted-foreground">
+              Use your own OpenRouter API key. Your data stays private and secure, under
+              your control.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 mt-20">
+        <div className="container mx-auto px-6 py-8 text-center text-sm text-muted-foreground">
+          <p>Built with ContextMemory - AI Memory Made Visual</p>
+        </div>
+      </footer>
     </div>
   );
 }

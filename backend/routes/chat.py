@@ -11,42 +11,56 @@ from contextmemory import Memory
 from contextmemory.db.models.memory import Memory as MemoryModel
 
 from database import get_db
-from config import chat_client, LLM_MODEL
+from config import LLM_MODEL
 from schemas import ChatRequest, ChatResponse, ExtractedMemory
 from utils import ensure_conversation_exists
+from auth.dependencies import get_current_user, require_api_key
+from models.user import User
+from services.openrouter_client import create_openrouter_client
 
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, db: Session = Depends(get_db)):
+async def chat(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    api_key: str = Depends(require_api_key),
+):
     """
     Send a message, get AI response, and extract memories.
+    Uses the authenticated user's ID as conversation_id.
     """
-    ensure_conversation_exists(db, request.conversation_id)
-    
+    # Use user.id as the conversation_id for memory isolation
+    conversation_id = user.id
+    ensure_conversation_exists(db, conversation_id)
+
+    # Create per-user OpenAI client with user's API key
+    chat_client = create_openrouter_client(api_key)
+
     # Create memory instance with fresh session
     memory = Memory(db)
-    
+
     # 1. Search relevant memories
     search_results = memory.search(
         query=request.message,
-        conversation_id=request.conversation_id,
+        conversation_id=conversation_id,
         limit=5,
     )
-    
+
     relevant_memories = search_results.get("results", [])
-    
+
     # Format memories for prompt
     memories_str = ""
     for entry in relevant_memories:
         mem_type = entry.get("type", "semantic")
         memories_str += f"- [{mem_type}] {entry['memory']}\n"
-    
+
     if not memories_str:
         memories_str = "No relevant memories found."
-    
+
     # 2. Build prompt
     system_prompt = f"""You are a helpful AI assistant with access to the user's memories.
 Use the provided memories to give personalized, contextual responses.
@@ -63,24 +77,24 @@ Instructions:
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": request.message},
     ]
-    
+
     # 3. Call LLM
     response = chat_client.chat.completions.create(
         model=LLM_MODEL,
         messages=messages,
     )
-    
+
     assistant_response = response.choices[0].message.content
-    
+
     # 4. Store memories
     full_messages = [
         {"role": "user", "content": request.message},
         {"role": "assistant", "content": assistant_response},
     ]
-    
+
     result = memory.add(
         messages=full_messages,
-        conversation_id=request.conversation_id,
+        conversation_id=conversation_id,
     )
 
     # Get the newly created memory IDs by querying the latest memories
@@ -96,7 +110,7 @@ Instructions:
         recent_memories = (
             db.query(MemoryModel)
             .filter(
-                MemoryModel.conversation_id == request.conversation_id,
+                MemoryModel.conversation_id == conversation_id,
                 MemoryModel.is_active == True
             )
             .order_by(MemoryModel.created_at.desc())
