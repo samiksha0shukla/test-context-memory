@@ -7,11 +7,11 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Calculate bubble radius based on importance score
- * Range: 24px (low importance) to 56px (high importance)
+ * Range: 20px (low importance) to 44px (high importance)
  */
 export function getBubbleRadius(importance: number): number {
-  const minRadius = 24;
-  const maxRadius = 56;
+  const minRadius = 20;
+  const maxRadius = 44;
   const clampedImportance = Math.max(0, Math.min(1, importance));
   return minRadius + clampedImportance * (maxRadius - minRadius);
 }

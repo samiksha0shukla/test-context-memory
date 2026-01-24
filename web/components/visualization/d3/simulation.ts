@@ -34,7 +34,7 @@ export function createSimulation(
     // Collision detection - increased padding for more space between bubbles
     .force(
       "collision",
-      d3.forceCollide().radius((d: any) => d.radius + 35).strength(1)
+      d3.forceCollide().radius((d: any) => d.radius + 45).strength(1)
     )
     // Radial force - constrains nodes within circular boundary
     .force(
