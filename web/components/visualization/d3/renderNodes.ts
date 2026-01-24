@@ -26,7 +26,7 @@ export function prepareNodes(
 
     // Calculate valid connection count (only connections to nodes that exist)
     const validConnectionCount = node.connections
-      ? node.connections.filter((conn: any) => nodeIdSet.has(conn.target_id)).length
+      ? node.connections.filter((conn: any) => nodeIdSet.has(conn.target_id) || nodeIdSet.has(conn.target_global_id)).length
       : 0;
 
     return {
@@ -37,13 +37,14 @@ export function prepareNodes(
       y: existingPos?.y ?? height / 2 + (Math.random() - 0.5) * 400,
       fx: existingPos?.fx,
       fy: existingPos?.fy,
-      validConnectionCount, // Add the valid connection count
+      validConnectionCount,
     };
   });
 }
 
 /**
  * Renders memory bubbles with circles and text labels
+ * Displays local_id (per-user sequential ID) instead of global id
  */
 export function renderNodes(
   container: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -59,6 +60,7 @@ export function renderNodes(
     .join("g")
     .attr("class", "memory-bubble")
     .attr("data-id", (d) => d.id)
+    .attr("data-local-id", (d) => d.local_id)
     .style("cursor", "pointer")
     .style("pointer-events", "all");
 
@@ -71,10 +73,10 @@ export function renderNodes(
     .attr("stroke-width", 2)
     .attr("stroke-opacity", 0.8);
 
-  // Add text - showing only memory ID
+  // Add text - showing LOCAL_ID (per-user sequential ID)
   node
     .append("text")
-    .text((d) => d.id.toString())
+    .text((d) => d.local_id.toString())  // Use local_id instead of id
     .attr("text-anchor", "middle")
     .attr("dy", "0.35em")
     .attr("font-size", (d) => {
@@ -86,9 +88,9 @@ export function renderNodes(
     .attr("pointer-events", "none")
     .style("user-select", "none");
 
-  // Add click handler
+  // Add click handler - still pass global id for internal use
   node.on("click", (event: MouseEvent, d) => {
-    setSelectedId(d.id);
+    setSelectedId(d.id);  // Use global id for selection/linking
     onBubbleClick(d, event);
   });
 

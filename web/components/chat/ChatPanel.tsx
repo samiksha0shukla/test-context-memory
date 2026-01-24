@@ -64,11 +64,11 @@ export function ChatPanel({ onMessageSent }: ChatPanelProps) {
       if (semantic.length > 0 || bubbles.length > 0) {
         const parts = [];
         if (semantic.length > 0) {
-          const ids = semantic.map(m => `#${m.id}`).join(", ");
+          const ids = semantic.map(m => `#${m.local_id}`).join(", ");
           parts.push(`${semantic.length} fact${semantic.length !== 1 ? 's' : ''} (${ids})`);
         }
         if (bubbles.length > 0) {
-          const ids = bubbles.map(m => `#${m.id}`).join(", ");
+          const ids = bubbles.map(m => `#${m.local_id}`).join(", ");
           parts.push(`${bubbles.length} bubble${bubbles.length !== 1 ? 's' : ''} (${ids})`);
         }
         toast.success(`Extracted: ${parts.join(", ")}`, { duration: 4000 });
@@ -140,14 +140,14 @@ export function ChatPanel({ onMessageSent }: ChatPanelProps) {
                     {message.extractedMemories.semantic.length > 0 && (
                       <div className="flex items-center gap-1 mt-1 px-1 text-xs text-amber-600">
                         <span>
-                          Fact{message.extractedMemories.semantic.length !== 1 ? 's' : ''}: {message.extractedMemories.semantic.map(m => `#${m.id}`).join(", ")}
+                          Fact{message.extractedMemories.semantic.length !== 1 ? 's' : ''}: {message.extractedMemories.semantic.map(m => `#${m.local_id}`).join(", ")}
                         </span>
                       </div>
                     )}
                     {message.extractedMemories.bubbles.length > 0 && (
                       <div className="flex items-center gap-1 mt-1 px-1 text-xs text-emerald-600">
                         <span>
-                          Bubble{message.extractedMemories.bubbles.length !== 1 ? 's' : ''}: {message.extractedMemories.bubbles.map(m => `#${m.id}`).join(", ")}
+                          Bubble{message.extractedMemories.bubbles.length !== 1 ? 's' : ''}: {message.extractedMemories.bubbles.map(m => `#${m.local_id}`).join(", ")}
                         </span>
                       </div>
                     )}

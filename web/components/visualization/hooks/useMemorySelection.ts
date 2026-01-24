@@ -31,8 +31,9 @@ export function useMemorySelection(data: any) {
     } as Memory);
 
     // Use ONLY the connections explicitly stored in this bubble's metadata
+    // Use target_global_id for node lookup (target_id is now local_id)
     const linkedIds = new Set(
-      memory.connections.map((conn: any) => conn.target_id)
+      memory.connections.map((conn: any) => conn.target_global_id ?? conn.target_id)
     );
 
     const linked = (data?.nodes.filter((n: any) => linkedIds.has(n.id)) || []).map(

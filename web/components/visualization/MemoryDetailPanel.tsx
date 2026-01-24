@@ -45,7 +45,7 @@ export function MemoryDetailPanel({
               ),
             }}
           >
-            {memory.id}
+            {memory.local_id}
           </div>
 
           {/* Memory Title */}
@@ -122,7 +122,7 @@ export function MemoryDetailPanel({
                       ),
                     }}
                   >
-                    {linkedMemory.id}
+                    {linkedMemory.local_id}
                   </div>
 
                   {/* Linked Memory Text */}

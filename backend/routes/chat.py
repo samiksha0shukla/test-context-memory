@@ -2,6 +2,7 @@
 Chat Routes
 ============
 API endpoint for chat functionality with memory integration.
+Returns local_id for per-user sequential memory numbering.
 """
 
 from fastapi import APIRouter, Depends
@@ -13,7 +14,7 @@ from contextmemory.db.models.memory import Memory as MemoryModel
 from database import get_db
 from config import LLM_MODEL
 from schemas import ChatRequest, ChatResponse, ExtractedMemory
-from utils import ensure_conversation_exists
+from utils import ensure_conversation_exists, build_id_mapping
 from auth.dependencies import get_current_user, require_api_key
 from models.user import User
 from services.openrouter_client import create_openrouter_client
@@ -32,6 +33,7 @@ async def chat(
     """
     Send a message, get AI response, and extract memories.
     Uses the authenticated user's ID as conversation_id.
+    Returns local_id for per-user sequential memory numbering.
     """
     # Use user.id as the conversation_id for memory isolation
     conversation_id = user.id
@@ -106,6 +108,20 @@ Instructions:
     extracted_bubbles = []
 
     if semantic_texts or bubble_texts:
+        # Get ALL memories to build proper ID mapping for local_id calculation
+        all_memories = (
+            db.query(MemoryModel)
+            .filter(
+                MemoryModel.conversation_id == conversation_id,
+                MemoryModel.is_active == True
+            )
+            .order_by(MemoryModel.created_at)
+            .all()
+        )
+        
+        # Build ID mapping for local_id
+        id_mapping = build_id_mapping(all_memories)
+
         # Get recent memories to find the IDs of newly extracted ones
         recent_memories = (
             db.query(MemoryModel)
@@ -124,6 +140,7 @@ Instructions:
                 if not mem.is_episodic and mem.memory_text == text:
                     extracted_semantic.append(ExtractedMemory(
                         id=mem.id,
+                        local_id=id_mapping.get(mem.id, 0),
                         text=text,
                         type="semantic"
                     ))
@@ -135,6 +152,7 @@ Instructions:
                 if mem.is_episodic and mem.memory_text == text:
                     extracted_bubbles.append(ExtractedMemory(
                         id=mem.id,
+                        local_id=id_mapping.get(mem.id, 0),
                         text=text,
                         type="bubble"
                     ))

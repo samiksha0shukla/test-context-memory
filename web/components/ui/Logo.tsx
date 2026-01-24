@@ -1,8 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Logo({ size = 32, showText = true }: { size?: number; showText?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
+    <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
       {/* CM Brain Logo Image */}
       <div className="relative" style={{ width: size, height: size }}>
         <Image
@@ -20,6 +21,6 @@ export function Logo({ size = 32, showText = true }: { size?: number; showText?:
           ContextMemory
         </span>
       )}
-    </div>
+    </Link>
   );
 }

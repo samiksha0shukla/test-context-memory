@@ -5,7 +5,7 @@ Request and response models for API endpoints.
 """
 
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 # ═══════════════════════════════════════════════════════
@@ -21,7 +21,8 @@ class ChatRequest(BaseModel):
 # ═══════════════════════════════════════════════════════
 
 class ExtractedMemory(BaseModel):
-    id: int
+    id: int  # Global database ID
+    local_id: int  # Per-user sequential ID (1, 2, 3...)
     text: str
     type: str
 
@@ -33,7 +34,8 @@ class ChatResponse(BaseModel):
 
 
 class MemoryNode(BaseModel):
-    id: int
+    id: int  # Global database ID (used for connections/links)
+    local_id: int  # Per-user sequential ID (displayed to user)
     text: str
     type: str  # "semantic" or "bubble"
     importance: float
@@ -44,3 +46,5 @@ class MemoryNode(BaseModel):
 class MemoriesResponse(BaseModel):
     nodes: List[MemoryNode]
     links: List[Dict[str, Any]]
+    # Mapping of global ID to local ID for link resolution
+    id_mapping: Optional[Dict[int, int]] = None

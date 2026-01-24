@@ -14,13 +14,15 @@ export function prepareLinks(
     .map((link) => ({
       source: link.source,
       target: link.target,
+      source_local: link.source_local,
+      target_local: link.target_local,
       strength: link.strength,
     }));
 }
 
 /**
  * Gets visible links for the selected node
- * Creates links for ALL connections in metadata, even if not in links array
+ * Uses target_global_id (or target_id as fallback) to find connected nodes
  */
 export function getVisibleLinks(
   selectedId: number | null,
@@ -35,13 +37,16 @@ export function getVisibleLinks(
   const visibleLinks: MemoryLink[] = [];
 
   selectedNode.connections.forEach((conn) => {
-    const targetNode = nodes.find(n => n.id === conn.target_id);
+    // Use target_global_id for node lookup (fallback to target_id for backward compatibility)
+    const targetGlobalId = conn.target_global_id ?? conn.target_id;
+    const targetNode = nodes.find(n => n.id === targetGlobalId);
+    
     if (targetNode) {
       // Try to find existing link first
       const existingLink = links.find((link) => {
         const sourceId = typeof link.source === 'number' ? link.source : (link.source as any).id;
         const targetId = typeof link.target === 'number' ? link.target : (link.target as any).id;
-        return sourceId === selectedId && targetId === conn.target_id;
+        return sourceId === selectedId && targetId === targetGlobalId;
       });
 
       if (existingLink) {
@@ -50,20 +55,20 @@ export function getVisibleLinks(
         // Create new link if it doesn't exist in links array
         visibleLinks.push({
           source: selectedId,
-          target: conn.target_id,
+          target: targetGlobalId,
           strength: conn.score || 0.5
         });
       }
     }
   });
 
-  console.log(`✓ Bubble ${selectedId} - Connections in data: ${selectedNode.connections.length}, Lines rendered: ${visibleLinks.length}`);
+  console.log(`✓ Bubble ${selectedId} (local: ${selectedNode.local_id}) - Connections in data: ${selectedNode.connections.length}, Lines rendered: ${visibleLinks.length}`);
 
   return visibleLinks;
 }
 
 /**
- * Gets the set of connected node IDs for the selected node
+ * Gets the set of connected node IDs (global IDs) for the selected node
  */
 export function getConnectedNodeIds(
   selectedId: number | null,
@@ -74,7 +79,8 @@ export function getConnectedNodeIds(
   const selectedNode = nodes.find((n) => n.id === selectedId);
   if (!selectedNode || !selectedNode.connections) return new Set();
 
-  return new Set(selectedNode.connections.map((conn) => conn.target_id));
+  // Use target_global_id for connected node IDs (for dimming logic)
+  return new Set(selectedNode.connections.map((conn) => conn.target_global_id ?? conn.target_id));
 }
 
 /**

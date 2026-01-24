@@ -33,7 +33,8 @@ export interface ChatRequest {
 }
 
 export interface ExtractedMemory {
-  id: number;
+  id: number;  // Global database ID
+  local_id: number;  // Per-user sequential ID
   text: string;
   type: string;
 }
@@ -58,21 +59,26 @@ export interface RelevantMemory {
 
 export interface MemoriesResponse {
   nodes: Array<{
-    id: number;
+    id: number;  // Global database ID
+    local_id: number;  // Per-user sequential ID
     text: string;
     type: string;
     importance: number;
     created_at: string;
     connections: Array<{
       target_id: number;
+      target_global_id?: number;
       score: number;
     }>;
   }>;
   links: Array<{
     source: number;
     target: number;
+    source_local?: number;
+    target_local?: number;
     strength: number;
   }>;
+  id_mapping?: Record<number, number>;  // global_id -> local_id
 }
 
 export interface MemoryDetail {
