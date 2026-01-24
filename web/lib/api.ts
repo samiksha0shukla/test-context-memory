@@ -1,6 +1,7 @@
 import type {
   ChatRequest,
   ChatResponse,
+  ChatHistoryResponse,
   MemoriesResponse,
   MemoryDetail,
   User,
@@ -8,6 +9,7 @@ import type {
   SignInRequest,
   ApiKeyStatus,
   ValidateApiKeyResponse,
+  UsageInfo,
 } from "@/types/api";
 
 export class ContextMemoryAPI {
@@ -102,6 +104,18 @@ export class ContextMemoryAPI {
     return response.json();
   }
 
+  async getUsage(): Promise<UsageInfo> {
+    const response = await fetch(`${this.baseUrl}/api/auth/usage`, {
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get usage info");
+    }
+
+    return response.json();
+  }
+
   // ═══════════════════════════════════════════════════════
   // API KEY METHODS
   // ═══════════════════════════════════════════════════════
@@ -181,9 +195,31 @@ export class ContextMemoryAPI {
         throw new Error("Please sign in to continue");
       }
       if (response.status === 403) {
+        const error = await response.json().catch(() => ({}));
+        if (error.detail?.code === "API_KEY_REQUIRED") {
+          throw new Error("API_KEY_REQUIRED");
+        }
         throw new Error("Please add your OpenRouter API key");
       }
       throw new Error(`Chat failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async getChatHistory(limit = 100, offset = 0): Promise<ChatHistoryResponse> {
+    const response = await fetch(
+      `${this.baseUrl}/api/chat/history?limit=${limit}&offset=${offset}`,
+      {
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Please sign in to continue");
+      }
+      throw new Error(`Failed to fetch chat history: ${response.statusText}`);
     }
 
     return response.json();

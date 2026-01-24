@@ -3,20 +3,24 @@ Chat Routes
 ============
 API endpoint for chat functionality with memory integration.
 Returns local_id for per-user sequential memory numbering.
+Supports free trial (10 messages) and API key access.
+Includes chat history persistence.
 """
 
-from fastapi import APIRouter, Depends
+from typing import Optional, Tuple, List
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from contextmemory import Memory
 from contextmemory.db.models.memory import Memory as MemoryModel
 
 from database import get_db
-from config import LLM_MODEL
-from schemas import ChatRequest, ChatResponse, ExtractedMemory
+from config import LLM_MODEL, OPENROUTER_API_KEY
+from schemas import ChatRequest, ChatResponse, ExtractedMemory, UsageInfo, ChatHistoryResponse, ChatMessageSchema
 from utils import ensure_conversation_exists, build_id_mapping
-from auth.dependencies import get_current_user, require_api_key
-from models.user import User
+from auth.dependencies import get_current_user, require_api_key_or_free_tier
+from models.user import User, FREE_MESSAGE_LIMIT
+from models.chat_message import ChatMessage
 from services.openrouter_client import create_openrouter_client
 
 
@@ -27,20 +31,36 @@ router = APIRouter(prefix="/api", tags=["chat"])
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-    api_key: str = Depends(require_api_key),
+    auth_result: Tuple[Optional[str], User] = Depends(require_api_key_or_free_tier),
 ):
     """
     Send a message, get AI response, and extract memories.
     Uses the authenticated user's ID as conversation_id.
     Returns local_id for per-user sequential memory numbering.
+
+    Free tier: First 10 messages use system API key.
+    After free tier: Requires user's OpenRouter API key.
     """
+    api_key, user = auth_result
+
     # Use user.id as the conversation_id for memory isolation
     conversation_id = user.id
     ensure_conversation_exists(db, conversation_id)
 
-    # Create per-user OpenAI client with user's API key
-    chat_client = create_openrouter_client(api_key)
+    # Determine which API key to use
+    if api_key:
+        # User has their own API key
+        effective_api_key = api_key
+        is_free_tier = False
+    else:
+        # Free tier - use system API key
+        if not OPENROUTER_API_KEY:
+            raise ValueError("System API key not configured for free tier")
+        effective_api_key = OPENROUTER_API_KEY
+        is_free_tier = True
+
+    # Create OpenAI client with the appropriate API key
+    chat_client = create_openrouter_client(effective_api_key)
 
     # Create memory instance with fresh session
     memory = Memory(db)
@@ -88,7 +108,13 @@ Instructions:
 
     assistant_response = response.choices[0].message.content
 
-    # 4. Store memories
+    # 4. Increment message count for free tier users
+    if is_free_tier:
+        user.message_count += 1
+        db.commit()
+        db.refresh(user)
+
+    # 5. Store memories
     full_messages = [
         {"role": "user", "content": request.message},
         {"role": "assistant", "content": assistant_response},
@@ -118,7 +144,7 @@ Instructions:
             .order_by(MemoryModel.created_at)
             .all()
         )
-        
+
         # Build ID mapping for local_id
         id_mapping = build_id_mapping(all_memories)
 
@@ -163,8 +189,93 @@ Instructions:
         "bubbles": extracted_bubbles,
     }
 
+    # 6. Save chat messages to database for history
+    # Save user message
+    user_chat_message = ChatMessage(
+        user_id=user.id,
+        role="user",
+        content=request.message,
+        extracted_memories=None,
+    )
+    db.add(user_chat_message)
+
+    # Save assistant message with extracted memories
+    extracted_dict = {
+        "semantic": [{"id": m.id, "local_id": m.local_id, "text": m.text, "type": m.type} for m in extracted_semantic],
+        "bubbles": [{"id": m.id, "local_id": m.local_id, "text": m.text, "type": m.type} for m in extracted_bubbles],
+    }
+    assistant_chat_message = ChatMessage(
+        user_id=user.id,
+        role="assistant",
+        content=assistant_response,
+        extracted_memories=extracted_dict if (extracted_semantic or extracted_bubbles) else None,
+    )
+    db.add(assistant_chat_message)
+    db.commit()
+
+    # Build usage info
+    usage = UsageInfo(
+        free_messages_remaining=user.free_messages_remaining,
+        free_message_limit=FREE_MESSAGE_LIMIT,
+        has_api_key=api_key is not None,
+    )
+
     return ChatResponse(
         response=assistant_response,
         extracted_memories=extracted,
         relevant_memories=relevant_memories,
+        usage=usage,
     )
+
+
+@router.get("/chat/history", response_model=ChatHistoryResponse)
+async def get_chat_history(
+    limit: int = Query(default=100, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Get chat history for the authenticated user.
+    Returns messages in chronological order (oldest first).
+    """
+    # Get total count
+    total = db.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
+
+    # Get messages
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.user_id == user.id)
+        .order_by(ChatMessage.created_at.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return ChatHistoryResponse(
+        messages=[
+            ChatMessageSchema(
+                id=msg.id,
+                role=msg.role,
+                content=msg.content,
+                extracted_memories=msg.extracted_memories,
+                created_at=msg.created_at.isoformat(),
+            )
+            for msg in messages
+        ],
+        total=total,
+        has_more=offset + limit < total,
+    )
+
+
+@router.delete("/chat/history")
+async def clear_chat_history(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Clear all chat history for the authenticated user.
+    """
+    db.query(ChatMessage).filter(ChatMessage.user_id == user.id).delete()
+    db.commit()
+    return {"message": "Chat history cleared"}

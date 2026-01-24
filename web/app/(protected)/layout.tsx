@@ -12,7 +12,7 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, apiKeyStatus, refreshApiKeyStatus } = useAuth();
+  const { isAuthenticated, isLoading, needsApiKey, refreshApiKeyStatus, refreshUser } = useAuth();
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   useEffect(() => {
@@ -21,16 +21,18 @@ export default function ProtectedLayout({
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Only show API key modal when free trial is expired and user has no key
   useEffect(() => {
-    if (isAuthenticated && apiKeyStatus && !apiKeyStatus.has_key) {
+    if (isAuthenticated && needsApiKey) {
       setShowApiKeyModal(true);
     } else {
       setShowApiKeyModal(false);
     }
-  }, [isAuthenticated, apiKeyStatus]);
+  }, [isAuthenticated, needsApiKey]);
 
   const handleApiKeySuccess = async () => {
     await refreshApiKeyStatus();
+    await refreshUser();
     setShowApiKeyModal(false);
   };
 

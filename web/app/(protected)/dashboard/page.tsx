@@ -23,7 +23,7 @@ const ChatPanel = dynamic(
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, logout, refreshApiKeyStatus } = useAuth();
+  const { user, logout, refreshApiKeyStatus, refreshUser } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -44,8 +44,14 @@ export default function DashboardPage() {
     // Memory graph will auto-refresh via SWR mutate
   };
 
+  const handleNeedsApiKey = () => {
+    // Triggered when free trial expires during chat
+    setShowApiKeyModal(true);
+  };
+
   const handleApiKeySuccess = async () => {
     await refreshApiKeyStatus();
+    await refreshUser();
     setShowApiKeyModal(false);
   };
 
@@ -115,7 +121,7 @@ export default function DashboardPage() {
             isChatOpen ? 'w-full md:w-[35%]' : 'w-0'
           } flex flex-col transition-all duration-300 overflow-hidden`}
         >
-          <ChatPanel onMessageSent={handleMessageSent} />
+          <ChatPanel onMessageSent={handleMessageSent} onNeedsApiKey={handleNeedsApiKey} />
         </div>
 
         {/* Right: Memory Visualization */}

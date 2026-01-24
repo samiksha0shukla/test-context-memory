@@ -1,9 +1,17 @@
 // Auth types
+export interface UsageInfo {
+  free_messages_remaining: number;
+  free_message_limit: number;
+  message_count: number;
+  has_api_key: boolean;
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   is_active: boolean;
+  usage: UsageInfo;
 }
 
 export interface SignUpRequest {
@@ -39,6 +47,12 @@ export interface ExtractedMemory {
   type: string;
 }
 
+export interface ChatUsageInfo {
+  free_messages_remaining: number;
+  free_message_limit: number;
+  has_api_key: boolean;
+}
+
 export interface ChatResponse {
   response: string;
   extracted_memories: {
@@ -46,6 +60,7 @@ export interface ChatResponse {
     bubbles: ExtractedMemory[];
   };
   relevant_memories: RelevantMemory[];
+  usage?: ChatUsageInfo;
 }
 
 export interface RelevantMemory {
@@ -96,3 +111,22 @@ export interface MemoryDetail {
     created_at: string;
   }>;
 }
+
+// Chat History types
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  extracted_memories?: {
+    semantic: ExtractedMemory[];
+    bubbles: ExtractedMemory[];
+  } | null;
+  created_at: string;
+}
+
+export interface ChatHistoryResponse {
+  messages: ChatMessage[];
+  total: number;
+  has_more: boolean;
+}
+

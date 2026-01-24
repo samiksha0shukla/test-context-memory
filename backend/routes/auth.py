@@ -10,8 +10,9 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models.user import User
+from models.user import User, FREE_MESSAGE_LIMIT
 from models.refresh_token import RefreshToken
+from models.api_key import UserApiKey
 from auth.password import hash_password, verify_password
 from auth.jwt import (
     create_access_token,
@@ -42,11 +43,19 @@ class SignInRequest(BaseModel):
     password: str
 
 
+class UsageResponse(BaseModel):
+    free_messages_remaining: int
+    free_message_limit: int
+    message_count: int
+    has_api_key: bool
+
+
 class UserResponse(BaseModel):
     id: int
     name: str
     email: str
     is_active: bool
+    usage: UsageResponse
 
     class Config:
         from_attributes = True
@@ -54,6 +63,27 @@ class UserResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+def build_user_response(user: User, db: Session) -> dict:
+    """Build user response with usage info."""
+    has_api_key = db.query(UserApiKey).filter(
+        UserApiKey.user_id == user.id,
+        UserApiKey.is_valid == True
+    ).first() is not None
+
+    return {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "is_active": user.is_active,
+        "usage": {
+            "free_messages_remaining": user.free_messages_remaining,
+            "free_message_limit": FREE_MESSAGE_LIMIT,
+            "message_count": user.message_count,
+            "has_api_key": has_api_key,
+        }
+    }
 
 
 # ═══════════════════════════════════════════════════════
@@ -138,7 +168,7 @@ def signup(request: SignUpRequest, response: Response, db: Session = Depends(get
     # Set cookies
     set_auth_cookies(response, access_token, refresh_token)
 
-    return user
+    return build_user_response(user, db)
 
 
 @router.post("/signin", response_model=UserResponse)
@@ -174,7 +204,7 @@ def signin(request: SignInRequest, response: Response, db: Session = Depends(get
     # Set cookies
     set_auth_cookies(response, access_token, refresh_token)
 
-    return user
+    return build_user_response(user, db)
 
 
 @router.post("/logout", response_model=MessageResponse)
@@ -257,6 +287,22 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
 
 
 @router.get("/me", response_model=UserResponse)
-def get_me(user: User = Depends(get_current_user)):
+def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get current authenticated user info."""
-    return user
+    return build_user_response(user, db)
+
+
+@router.get("/usage", response_model=UsageResponse)
+def get_usage(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user's usage info."""
+    has_api_key = db.query(UserApiKey).filter(
+        UserApiKey.user_id == user.id,
+        UserApiKey.is_valid == True
+    ).first() is not None
+
+    return {
+        "free_messages_remaining": user.free_messages_remaining,
+        "free_message_limit": FREE_MESSAGE_LIMIT,
+        "message_count": user.message_count,
+        "has_api_key": has_api_key,
+    }
