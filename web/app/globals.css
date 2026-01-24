@@ -1,60 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ContextMemory Design System - Forest/Mountain Theme */
+
 @layer base {
   :root {
-    /* Pickle OS warm, minimal aesthetic */
-    --background: 40 15% 98%;        /* Warm off-white #FAFAF8 */
-    --foreground: 0 0% 11%;          /* Dark gray/black #1C1C1C */
-    --card: 40 20% 99%;              /* Slightly warmer white */
-    --card-foreground: 0 0% 11%;
-    --popover: 40 20% 99%;
-    --popover-foreground: 0 0% 11%;
-    --primary: 0 0% 11%;             /* Dark text */
-    --primary-foreground: 40 15% 98%;
-    --secondary: 40 10% 96%;         /* Subtle gray */
-    --secondary-foreground: 0 0% 11%;
-    --muted: 40 10% 95%;             /* Light gray with warmth */
-    --muted-foreground: 0 0% 42%;    /* Medium gray #6B6B6B */
-    --accent: 36 100% 70%;           /* Warm accent (amber) */
-    --accent-foreground: 0 0% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 40 8% 92%;             /* Subtle warm border */
-    --input: 40 8% 94%;
-    --ring: 36 100% 70%;             /* Warm focus ring */
-    --radius: 12px;                  /* Larger, softer radius */
+    --background: 150 20% 98%;
+    --foreground: 150 25% 10%;
 
-    /* Custom Pickle OS-inspired colors */
+    --card: 0 0% 100%;
+    --card-foreground: 150 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 25% 10%;
+
+    --primary: 150 30% 25%;
+    --primary-foreground: 150 20% 98%;
+
+    --secondary: 150 15% 92%;
+    --secondary-foreground: 150 25% 15%;
+
+    --muted: 150 10% 94%;
+    --muted-foreground: 150 10% 40%;
+
+    --accent: 150 25% 88%;
+    --accent-foreground: 150 30% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 15% 88%;
+    --input: 150 15% 88%;
+    --ring: 150 30% 25%;
+
+    --radius: 1rem;
+
+    /* Custom Design Tokens */
+    --forest-deep: 150 35% 18%;
+    --forest-medium: 150 30% 28%;
+    --forest-light: 150 20% 45%;
+    --mountain-mist: 180 15% 65%;
+    --snow-white: 150 20% 98%;
+    --sky-dark: 170 25% 35%;
+
+    /* Glass morphism */
+    --glass-bg: 150 30% 98% / 0.7;
+    --glass-border: 150 20% 90% / 0.5;
+    --glass-shadow: 150 30% 20% / 0.1;
+
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+    /* Memory Graph Colors (for dashboard) */
     --bubble-blue: 214 100% 70%;
     --bubble-amber: 36 100% 70%;
     --bubble-active: 142 76% 36%;
     --bubble-warm: 45 93% 47%;
     --bubble-cold: 217 91% 60%;
     --connection-opacity: 0.15;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 150 25% 8%;
+    --foreground: 150 15% 95%;
+
+    --card: 150 25% 10%;
+    --card-foreground: 150 15% 95%;
+
+    --popover: 150 25% 10%;
+    --popover-foreground: 150 15% 95%;
+
+    --primary: 150 25% 70%;
+    --primary-foreground: 150 30% 10%;
+
+    --secondary: 150 20% 18%;
+    --secondary-foreground: 150 15% 90%;
+
+    --muted: 150 20% 18%;
+    --muted-foreground: 150 15% 60%;
+
+    --accent: 150 20% 22%;
+    --accent-foreground: 150 15% 90%;
+
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 20% 20%;
+    --input: 150 20% 20%;
+    --ring: 150 25% 60%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -62,12 +117,99 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 8px 32px hsl(var(--glass-shadow));
+  }
+
+  .glass-button {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 4px 16px hsl(var(--glass-shadow));
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: hsl(150 30% 95% / 0.85);
+    box-shadow: 0 6px 24px hsl(var(--glass-shadow));
+    transform: translateY(-2px);
+  }
+
+  .glass-input {
+    background: hsl(150 30% 98% / 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(150 20% 85% / 0.6);
+    box-shadow: inset 0 1px 2px hsl(150 30% 20% / 0.05);
+  }
+
+  .glass-input:focus {
+    background: hsl(150 30% 98% / 0.6);
+    border-color: hsl(150 30% 70% / 0.8);
+  }
+
+  .hero-gradient-overlay {
+    background: linear-gradient(to bottom,
+        hsl(150 20% 98% / 0.95) 0%,
+        hsl(150 20% 98% / 0.85) 15%,
+        hsl(150 20% 98% / 0.6) 35%,
+        hsl(150 20% 98% / 0.3) 55%,
+        transparent 75%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--forest-deep)) 0%, hsl(var(--forest-medium)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+
+  .animate-fade-in-up-delay {
+    animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up-delay-2 {
+    animation: fadeInUp 0.8s ease-out 0.4s forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -131,6 +273,7 @@
     transform: translateY(10px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -147,6 +290,7 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -157,10 +301,9 @@
   animation: slide-in-right 0.3s ease-out;
 }
 
-/* Graph canvas - warm, clean background */
+/* Graph canvas */
 .graph-canvas {
-  background-color: hsl(40 15% 98%);
-  /* Removed grid pattern for cleaner Pickle OS look */
+  background-color: hsl(var(--background));
 }
 
 /* Loading states */
@@ -169,10 +312,18 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
+}
+
+/* Display font utility class */
+.font-display {
+  font-family: var(--font-display);
 }

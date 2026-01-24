@@ -8,7 +8,18 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
+      fontFamily: {
+        display: ['Playfair Display', 'Georgia', 'serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -43,6 +54,20 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        forest: {
+          deep: "hsl(var(--forest-deep))",
+          medium: "hsl(var(--forest-medium))",
+          light: "hsl(var(--forest-light))",
+        },
+        mountain: {
+          mist: "hsl(var(--mountain-mist))",
+        },
+        snow: {
+          white: "hsl(var(--snow-white))",
+        },
+        sky: {
+          dark: "hsl(var(--sky-dark))",
+        },
         bubble: {
           blue: "hsl(var(--bubble-blue))",
           amber: "hsl(var(--bubble-amber))",
@@ -65,10 +90,20 @@ const config: Config = {
           "0%": { strokeDashoffset: "100" },
           "100%": { strokeDashoffset: "0" },
         },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
       },
       animation: {
         "bubble-in": "bubble-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "connection-draw": "connection-draw 0.6s ease-out",
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },

@@ -1,15 +1,18 @@
-import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import UserProfile from "@/components/UserProfile";
 
 const Navbar = () => {
-  const navLinks = ["Home", "Products", "Docs"];
+  const navLinks = ["Home", "Products", "Docs", "Demo"];
+  const { isAuthenticated } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
-        <a href="/" className="font-display text-xl font-semibold text-foreground tracking-tight">
+        <Link to="/" className="font-display text-xl font-semibold text-foreground tracking-tight">
           ContextMemory
-        </a>
+        </Link>
 
         {/* Center Navigation */}
         <div className="hidden md:flex items-center gap-8">
@@ -26,12 +29,24 @@ const Navbar = () => {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-            Sign in
-          </Button>
-          <Button variant="outline" size="sm" className="text-sm font-medium rounded-full px-4 border-foreground/20 hover:bg-foreground hover:text-background transition-all duration-200">
-            Sign up
-          </Button>
+          {isAuthenticated ? (
+            <UserProfile />
+          ) : (
+            <>
+              <Link 
+                to="/auth" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link 
+                to="/auth" 
+                className="text-sm font-medium rounded-full px-4 py-2 border border-foreground/20 hover:bg-foreground hover:text-background transition-all duration-200"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
