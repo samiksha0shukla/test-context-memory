@@ -1,0 +1,73 @@
+
+> contextmemory-web@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.5.9
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.37:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1279ms
+ ✓ Compiled /middleware in 93ms (114 modules)
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1004ms (1923 modules)
+ GET /dashboard 200 in 1261ms
+ ✓ Compiled in 110ms (899 modules)
+ ✓ Compiled / in 330ms (1924 modules)
+ GET / 200 in 383ms
+ GET /dashboard 200 in 31ms
+ GET / 200 in 21ms
+ GET /dashboard 200 in 26ms
+ GET / 200 in 53ms
+ ✓ Compiled /signin in 293ms (1946 modules)
+ GET /signin 200 in 404ms
+ GET /dashboard 200 in 18ms
+ GET / 200 in 44ms
+ GET /signin 200 in 45ms
+ GET /dashboard 200 in 22ms
+ GET / 200 in 29ms
+ ✓ Compiled /demo in 273ms (1959 modules)
+ GET /demo 200 in 353ms
+ GET / 200 in 31ms
+ GET /dashboard 200 in 34ms
+ GET / 200 in 36ms
+ GET /dashboard 200 in 23ms
+ GET / 200 in 25ms
+ GET /dashboard 200 in 43ms
+ GET /dashboard 200 in 30ms
+ GET / 200 in 47ms
+ GET /signin 200 in 48ms
+ GET / 200 in 26ms
+ ✓ Compiled /signup in 301ms (1967 modules)
+ GET /signup 200 in 383ms
+ GET /demo 200 in 37ms
+ GET /demo 200 in 22ms
+ GET / 200 in 32ms
+ GET /signin 200 in 36ms
+ GET /signup 200 in 27ms
+ GET /signin 200 in 20ms
+ GET /dashboard 200 in 17ms
+ GET / 200 in 19ms
+ GET / 200 in 14ms
+ GET / 200 in 19ms
+ GET / 200 in 19ms
+ GET / 200 in 155ms
+ GET /demo 200 in 20ms
+ GET / 200 in 17ms
+ GET /dashboard 200 in 22ms
+ GET / 200 in 20ms
+ GET /demo 200 in 28ms
+ GET /signin?from=%2Fdashboard 200 in 25ms
+ ✓ Compiled in 737ms (1979 modules)
+ ✓ Compiled in 295ms (1979 modules)
+ ✓ Compiled in 213ms (1979 modules)
+ ✓ Compiled in 240ms (1981 modules)
+ ✓ Compiled /_not-found in 343ms (1986 modules)
+ GET / 404 in 475ms
+ ✓ Compiled in 538ms (1981 modules)
+ ✓ Compiled in 184ms (1981 modules)
+ ✓ Compiled in 267ms (1981 modules)
+ ✓ Compiled in 247ms (1981 modules)
+ ✓ Compiled in 99ms (917 modules)
+ ✓ Compiled in 123ms (917 modules)

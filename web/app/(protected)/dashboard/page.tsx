@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, LogOut, Key } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, LogOut, Key, ChevronDown, Home } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiKeyModal } from "@/components/api-key/ApiKeyModal";
@@ -26,18 +27,24 @@ export default function DashboardPage() {
   const { user, logout, refreshApiKeyStatus, refreshUser } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      router.push("/");
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      setIsLoggingOut(false);
-    }
+    setShowProfileDropdown(false);
+    await logout();
+    router.push("/");
   };
 
   const handleMessageSent = () => {
@@ -79,36 +86,58 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right: User's Space + Actions */}
+        {/* Right: User's Space + Profile */}
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">
             {userName}'s space
           </span>
 
-          {/* API Key Button */}
-          <button
-            onClick={() => setShowApiKeyModal(true)}
-            className="p-1.5 hover:bg-muted/50 rounded-md transition-colors"
-            aria-label="Manage API Key"
-            title="Manage API Key"
-          >
-            <Key className="w-4 h-4 text-muted-foreground" />
-          </button>
+          {/* Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm font-semibold">
+                {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </div>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="p-1.5 hover:bg-muted/50 rounded-md transition-colors disabled:opacity-50"
-            aria-label="Logout"
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4 text-muted-foreground" />
-          </button>
-
-          {/* User Avatar/Initial */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-semibold">
-            {userName.split(' ').map(n => n[0]).join('')}
+            {/* Dropdown Menu */}
+            {showProfileDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="font-medium text-sm">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted/50 transition-colors"
+                  onClick={() => setShowProfileDropdown(false)}
+                >
+                  <Home className="w-4 h-4" />
+                  Home
+                </Link>
+                <button
+                  onClick={() => {
+                    setShowProfileDropdown(false);
+                    setShowApiKeyModal(true);
+                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-muted/50 transition-colors"
+                >
+                  <Key className="w-4 h-4" />
+                  Manage API Key
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-muted/50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
