@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://test-context-memory.vercel.app/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
