@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 
@@ -16,7 +18,9 @@ export default function SignUpPage() {
         </div>
 
         <div className="bg-card border border-border rounded-lg p-6">
-          <SignUpForm />
+          <Suspense fallback={<div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+            <SignUpForm />
+          </Suspense>
         </div>
       </div>
     </div>
