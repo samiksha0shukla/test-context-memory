@@ -22,7 +22,14 @@ export class ContextMemoryAPI {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else {
+      // In development, default to localhost if not specified
+      // In production, default to empty string (relative path) to use Next.js rewrites
+      const defaultUrl = process.env.NODE_ENV === "development" ? "http://localhost:8000" : "";
+      this.baseUrl = process.env.NEXT_PUBLIC_API_URL || defaultUrl;
+    }
   }
 
   // ═══════════════════════════════════════════════════════
