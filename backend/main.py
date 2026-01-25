@@ -6,7 +6,7 @@ Provides API endpoints for the Next.js frontend to interact with ContextMemory.
 """
 
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize auth tables first
@@ -57,6 +57,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"GLOBAL SERVER ERROR: {error_details}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal Server Error: {str(exc)}", "trace": error_details}
+        )
 
 
 # ═══════════════════════════════════════════════════════
