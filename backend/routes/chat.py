@@ -55,7 +55,12 @@ async def chat(
     else:
         # Free tier - use system API key
         if not OPENROUTER_API_KEY:
-            raise ValueError("System API key not configured for free tier")
+            # Return 503 instead of crashing with 500
+            from fastapi import HTTPException, status
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="System API key not configured. Please add OPENROUTER_API_KEY to environment variables."
+            )
         effective_api_key = OPENROUTER_API_KEY
         is_free_tier = True
 
@@ -101,10 +106,18 @@ Instructions:
     ]
 
     # 3. Call LLM
-    response = chat_client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-    )
+    try:
+        response = chat_client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=messages,
+        )
+    except Exception as e:
+        from fastapi import HTTPException, status
+        print(f"LLM Error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to generate response from AI provider: {str(e)}"
+        )
 
     assistant_response = response.choices[0].message.content
 
