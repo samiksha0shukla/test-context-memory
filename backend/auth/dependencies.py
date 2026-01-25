@@ -6,6 +6,7 @@ FastAPI dependencies for route protection and free trial management.
 
 from typing import Optional, Tuple
 from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -14,22 +15,30 @@ from models.api_key import UserApiKey
 from auth.jwt import decode_token
 from auth.encryption import decrypt_api_key
 
+# Bearer token security scheme
+security = HTTPBearer(auto_error=False)
 
-def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
-    """Dependency to get the current authenticated user from access token cookie."""
-    token = request.cookies.get("access_token")
 
-    if not token:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """Dependency to get the current authenticated user from Bearer token."""
+    if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+
+    token = credentials.credentials
 
     payload = decode_token(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     user_id = int(payload.get("sub"))
@@ -39,15 +48,21 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return user
 
 
-def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
     """Dependency to get the current user if authenticated, or None."""
+    if not credentials:
+        return None
     try:
-        return get_current_user(request, db)
+        return get_current_user(credentials, db)
     except HTTPException:
         return None
 

@@ -25,6 +25,20 @@ export interface SignInRequest {
   password: string;
 }
 
+export interface AuthResponse {
+  user: User;
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
 export interface ApiKeyStatus {
   has_key: boolean;
   is_valid: boolean;

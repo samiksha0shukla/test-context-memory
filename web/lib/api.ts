@@ -7,16 +7,58 @@ import type {
   User,
   SignUpRequest,
   SignInRequest,
+  AuthResponse,
+  TokenResponse,
   ApiKeyStatus,
   ValidateApiKeyResponse,
   UsageInfo,
 } from "@/types/api";
+
+// Token storage keys
+const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
 
 export class ContextMemoryAPI {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // TOKEN MANAGEMENT
+  // ═══════════════════════════════════════════════════════
+
+  private getAccessToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  }
+
+  private getRefreshToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  private setTokens(accessToken: string, refreshToken: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  private clearTokens(): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+
+  private getAuthHeaders(): HeadersInit {
+    const token = this.getAccessToken();
+    if (token) {
+      return {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+    return {};
   }
 
   // ═══════════════════════════════════════════════════════
@@ -29,7 +71,6 @@ export class ContextMemoryAPI {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
       body: JSON.stringify(data),
     });
 
@@ -38,7 +79,9 @@ export class ContextMemoryAPI {
       throw new Error(error.detail || "Sign up failed");
     }
 
-    return response.json();
+    const authResponse: AuthResponse = await response.json();
+    this.setTokens(authResponse.access_token, authResponse.refresh_token);
+    return authResponse.user;
   }
 
   async signIn(data: SignInRequest): Promise<User> {
@@ -47,7 +90,6 @@ export class ContextMemoryAPI {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
       body: JSON.stringify(data),
     });
 
@@ -56,32 +98,60 @@ export class ContextMemoryAPI {
       throw new Error(error.detail || "Sign in failed");
     }
 
-    return response.json();
+    const authResponse: AuthResponse = await response.json();
+    this.setTokens(authResponse.access_token, authResponse.refresh_token);
+    return authResponse.user;
   }
 
   async logout(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const refreshToken = this.getRefreshToken();
 
-    if (!response.ok) {
-      throw new Error("Logout failed");
+    try {
+      await fetch(`${this.baseUrl}/api/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+    } finally {
+      this.clearTokens();
     }
   }
 
   async refreshToken(): Promise<boolean> {
-    const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return false;
 
-    return response.ok;
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) {
+        this.clearTokens();
+        return false;
+      }
+
+      const tokenResponse: TokenResponse = await response.json();
+      localStorage.setItem(ACCESS_TOKEN_KEY, tokenResponse.access_token);
+      return true;
+    } catch {
+      this.clearTokens();
+      return false;
+    }
   }
 
   async getCurrentUser(): Promise<User | null> {
+    const token = this.getAccessToken();
+    if (!token) return null;
+
     const response = await fetch(`${this.baseUrl}/api/auth/me`, {
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -90,12 +160,13 @@ export class ContextMemoryAPI {
         const refreshed = await this.refreshToken();
         if (refreshed) {
           const retryResponse = await fetch(`${this.baseUrl}/api/auth/me`, {
-            credentials: "include",
+            headers: this.getAuthHeaders(),
           });
           if (retryResponse.ok) {
             return retryResponse.json();
           }
         }
+        this.clearTokens();
         return null;
       }
       return null;
@@ -106,7 +177,7 @@ export class ContextMemoryAPI {
 
   async getUsage(): Promise<UsageInfo> {
     const response = await fetch(`${this.baseUrl}/api/auth/usage`, {
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -114,6 +185,11 @@ export class ContextMemoryAPI {
     }
 
     return response.json();
+  }
+
+  // Check if user has tokens stored (for initial auth check)
+  hasStoredTokens(): boolean {
+    return !!this.getAccessToken();
   }
 
   // ═══════════════════════════════════════════════════════
@@ -125,8 +201,8 @@ export class ContextMemoryAPI {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
       },
-      credentials: "include",
       body: JSON.stringify({ api_key: apiKey }),
     });
 
@@ -142,8 +218,8 @@ export class ContextMemoryAPI {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
       },
-      credentials: "include",
       body: JSON.stringify({ api_key: apiKey }),
     });
 
@@ -155,7 +231,7 @@ export class ContextMemoryAPI {
 
   async getApiKeyStatus(): Promise<ApiKeyStatus> {
     const response = await fetch(`${this.baseUrl}/api/api-keys/status`, {
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -168,7 +244,7 @@ export class ContextMemoryAPI {
   async deleteApiKey(): Promise<void> {
     const response = await fetch(`${this.baseUrl}/api/api-keys`, {
       method: "DELETE",
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -185,8 +261,8 @@ export class ContextMemoryAPI {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
       },
-      credentials: "include",
       body: JSON.stringify({ message } as ChatRequest),
     });
 
@@ -211,7 +287,7 @@ export class ContextMemoryAPI {
     const response = await fetch(
       `${this.baseUrl}/api/chat/history?limit=${limit}&offset=${offset}`,
       {
-        credentials: "include",
+        headers: this.getAuthHeaders(),
       }
     );
 
@@ -231,7 +307,7 @@ export class ContextMemoryAPI {
 
   async getMemories(): Promise<MemoriesResponse> {
     const response = await fetch(`${this.baseUrl}/api/memories`, {
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -241,7 +317,7 @@ export class ContextMemoryAPI {
         if (refreshed) {
           // Retry the request after refreshing
           const retryResponse = await fetch(`${this.baseUrl}/api/memories`, {
-            credentials: "include",
+            headers: this.getAuthHeaders(),
           });
           if (retryResponse.ok) {
             return retryResponse.json();
@@ -257,7 +333,7 @@ export class ContextMemoryAPI {
 
   async getMemoryDetail(memoryId: number): Promise<MemoryDetail> {
     const response = await fetch(`${this.baseUrl}/api/memory/${memoryId}`, {
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -270,7 +346,7 @@ export class ContextMemoryAPI {
   async deleteMemory(memoryId: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/api/memory/${memoryId}`, {
       method: "DELETE",
-      credentials: "include",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {

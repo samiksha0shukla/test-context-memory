@@ -2,18 +2,17 @@
 Auth Routes
 ===========
 Authentication endpoints for signup, signin, logout, and token refresh.
+Uses Bearer token authentication (tokens returned in response body).
 """
 
 import os
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from database import get_db
-
-# Detect production environment (Vercel sets VERCEL=1)
-IS_PRODUCTION = os.getenv("VERCEL") == "1" or os.getenv("ENVIRONMENT") == "production"
 from models.user import User, FREE_MESSAGE_LIMIT
 from models.refresh_token import RefreshToken
 from models.api_key import UserApiKey
@@ -47,6 +46,14 @@ class SignInRequest(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
 class UsageResponse(BaseModel):
     free_messages_remaining: int
     free_message_limit: int
@@ -54,7 +61,7 @@ class UsageResponse(BaseModel):
     has_api_key: bool
 
 
-class UserResponse(BaseModel):
+class UserInfo(BaseModel):
     id: int
     name: str
     email: str
@@ -65,12 +72,28 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+class AuthResponse(BaseModel):
+    """Response for signup/signin with tokens."""
+    user: UserInfo
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+class TokenResponse(BaseModel):
+    """Response for token refresh."""
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
 class MessageResponse(BaseModel):
     message: str
 
 
-def build_user_response(user: User, db: Session) -> dict:
-    """Build user response with usage info."""
+def build_user_info(user: User, db: Session) -> dict:
+    """Build user info with usage data."""
     has_api_key = db.query(UserApiKey).filter(
         UserApiKey.user_id == user.id,
         UserApiKey.is_valid == True
@@ -91,65 +114,13 @@ def build_user_response(user: User, db: Session) -> dict:
 
 
 # ═══════════════════════════════════════════════════════
-# COOKIE HELPERS
-# ═══════════════════════════════════════════════════════
-
-
-def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
-    """Set HTTP-only cookies for access and refresh tokens."""
-    # Production (Vercel): secure=True, samesite="none" for cross-origin requests
-    # Development: secure=False, samesite="lax" for localhost
-    secure = IS_PRODUCTION
-    samesite: str = "none" if IS_PRODUCTION else "lax"
-
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=secure,
-        samesite=samesite,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/",
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=secure,
-        samesite=samesite,
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        path="/",
-    )
-
-
-def clear_auth_cookies(response: Response):
-    """Clear auth cookies."""
-    # Must use same secure/samesite attributes when clearing cross-origin cookies
-    secure = IS_PRODUCTION
-    samesite: str = "none" if IS_PRODUCTION else "lax"
-
-    response.delete_cookie(
-        key="access_token",
-        path="/",
-        secure=secure,
-        samesite=samesite,
-    )
-    response.delete_cookie(
-        key="refresh_token",
-        path="/",
-        secure=secure,
-        samesite=samesite,
-    )
-
-
-# ═══════════════════════════════════════════════════════
 # AUTH ENDPOINTS
 # ═══════════════════════════════════════════════════════
 
 
-@router.post("/signup", response_model=UserResponse)
-def signup(request: SignUpRequest, response: Response, db: Session = Depends(get_db)):
-    """Create a new user account and return tokens in cookies."""
+@router.post("/signup", response_model=AuthResponse)
+def signup(request: SignUpRequest, db: Session = Depends(get_db)):
+    """Create a new user account and return tokens."""
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == request.email).first()
     if existing_user:
@@ -188,15 +159,18 @@ def signup(request: SignUpRequest, response: Response, db: Session = Depends(get
     db.add(token_record)
     db.commit()
 
-    # Set cookies
-    set_auth_cookies(response, access_token, refresh_token)
+    return {
+        "user": build_user_info(user, db),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
 
-    return build_user_response(user, db)
 
-
-@router.post("/signin", response_model=UserResponse)
-def signin(request: SignInRequest, response: Response, db: Session = Depends(get_db)):
-    """Authenticate user and return tokens in cookies."""
+@router.post("/signin", response_model=AuthResponse)
+def signin(request: SignInRequest, db: Session = Depends(get_db)):
+    """Authenticate user and return tokens."""
     user = db.query(User).filter(User.email == request.email).first()
 
     if not user or not verify_password(request.password, user.hashed_password):
@@ -224,61 +198,45 @@ def signin(request: SignInRequest, response: Response, db: Session = Depends(get
     db.add(token_record)
     db.commit()
 
-    # Set cookies
-    set_auth_cookies(response, access_token, refresh_token)
-
-    return build_user_response(user, db)
+    return {
+        "user": build_user_info(user, db),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(
-    request: Request,
-    response: Response,
-    db: Session = Depends(get_db),
-):
+def logout(request: LogoutRequest, db: Session = Depends(get_db)):
     """Logout user and invalidate refresh token."""
-    # Get refresh token from cookie and invalidate it
-    refresh_token = request.cookies.get("refresh_token")
-    if refresh_token:
-        token_hash = hash_token(refresh_token)
+    if request.refresh_token:
+        token_hash = hash_token(request.refresh_token)
         db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).delete()
         db.commit()
-
-    # Clear cookies
-    clear_auth_cookies(response)
 
     return {"message": "Successfully logged out"}
 
 
-@router.post("/refresh", response_model=MessageResponse)
-def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
     """Issue a new access token using refresh token."""
-    refresh_token = request.cookies.get("refresh_token")
-
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found",
-        )
-
     # Validate refresh token
-    payload = decode_token(refresh_token)
+    payload = decode_token(request.refresh_token)
     if not payload or payload.get("type") != "refresh":
-        clear_auth_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
 
     # Check if token exists in database and is not expired
-    token_hash = hash_token(refresh_token)
+    token_hash = hash_token(request.refresh_token)
     token_record = db.query(RefreshToken).filter(
         RefreshToken.token_hash == token_hash,
         RefreshToken.expires_at > datetime.now(timezone.utc),
     ).first()
 
     if not token_record:
-        clear_auth_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired or revoked",
@@ -287,7 +245,6 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     # Get user
     user = db.query(User).filter(User.id == token_record.user_id).first()
     if not user or not user.is_active:
-        clear_auth_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
@@ -295,26 +252,18 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
 
     # Issue new access token
     access_token = create_access_token(user.id, user.email)
-    secure = IS_PRODUCTION
-    samesite: str = "none" if IS_PRODUCTION else "lax"
 
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=secure,
-        samesite=samesite,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/",
-    )
-
-    return {"message": "Token refreshed"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserInfo)
 def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get current authenticated user info."""
-    return build_user_response(user, db)
+    return build_user_info(user, db)
 
 
 @router.get("/usage", response_model=UsageResponse)
@@ -337,9 +286,6 @@ def get_usage(user: User = Depends(get_current_user), db: Session = Depends(get_
 def debug_env():
     """Debug endpoint to check environment configuration."""
     return {
-        "is_production": IS_PRODUCTION,
-        "vercel_env": os.getenv("VERCEL"),
-        "environment": os.getenv("ENVIRONMENT"),
-        "cookie_secure": IS_PRODUCTION,
-        "cookie_samesite": "none" if IS_PRODUCTION else "lax",
+        "auth_type": "bearer_token",
+        "is_vercel": os.getenv("VERCEL") == "1",
     }
