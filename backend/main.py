@@ -6,6 +6,24 @@ Provides API endpoints for the Next.js frontend to interact with ContextMemory.
 """
 
 import os
+
+# CRITICAL: Fix for Read-only file system on Vercel
+# Force libraries to use /tmp for caching/config
+os.environ['HOME'] = '/tmp'
+os.environ['HF_HOME'] = '/tmp/hf_home'
+os.environ['TIKTOKEN_CACHE_DIR'] = '/tmp/tiktoken'
+os.environ['XDG_CACHE_HOME'] = '/tmp/cache'
+os.environ['NLTK_DATA'] = '/tmp/nltk_data'
+
+# Ensure these directories exist
+try:
+    os.makedirs('/tmp/hf_home', exist_ok=True)
+    os.makedirs('/tmp/tiktoken', exist_ok=True)
+    os.makedirs('/tmp/cache', exist_ok=True)
+    os.makedirs('/tmp/nltk_data', exist_ok=True)
+except Exception as e:
+    print(f"Warning: Failed to create temp dirs: {e}")
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
