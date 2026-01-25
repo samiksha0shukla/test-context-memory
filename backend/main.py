@@ -52,6 +52,7 @@ if os.getenv("FRONTEND_URL"):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://test-context-memory.*\.vercel\.app",  # Allow all Vercel preview URLs
     allow_credentials=True,  # Required for cookies
     allow_methods=["*"],
     allow_headers=["*"],
