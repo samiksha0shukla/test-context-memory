@@ -4,12 +4,16 @@ Auth Routes
 Authentication endpoints for signup, signin, logout, and token refresh.
 """
 
+import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from database import get_db
+
+# Detect production environment (Vercel sets VERCEL=1)
+IS_PRODUCTION = os.getenv("VERCEL") == "1" or os.getenv("ENVIRONMENT") == "production"
 from models.user import User, FREE_MESSAGE_LIMIT
 from models.refresh_token import RefreshToken
 from models.api_key import UserApiKey
@@ -93,12 +97,17 @@ def build_user_response(user: User, db: Session) -> dict:
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     """Set HTTP-only cookies for access and refresh tokens."""
+    # Production (Vercel): secure=True, samesite="none" for cross-origin requests
+    # Development: secure=False, samesite="lax" for localhost
+    secure = IS_PRODUCTION
+    samesite: str = "none" if IS_PRODUCTION else "lax"
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite="lax",
+        secure=secure,
+        samesite=samesite,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
@@ -106,8 +115,8 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite="lax",
+        secure=secure,
+        samesite=samesite,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/",
     )
@@ -212,7 +221,6 @@ def logout(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ):
     """Logout user and invalidate refresh token."""
     # Get refresh token from cookie and invalidate it
@@ -273,12 +281,15 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
 
     # Issue new access token
     access_token = create_access_token(user.id, user.email)
+    secure = IS_PRODUCTION
+    samesite: str = "none" if IS_PRODUCTION else "lax"
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite="lax",
+        secure=secure,
+        samesite=samesite,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
