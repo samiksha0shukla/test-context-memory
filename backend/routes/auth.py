@@ -124,8 +124,22 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
 
 def clear_auth_cookies(response: Response):
     """Clear auth cookies."""
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
+    # Must use same secure/samesite attributes when clearing cross-origin cookies
+    secure = IS_PRODUCTION
+    samesite: str = "none" if IS_PRODUCTION else "lax"
+
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=secure,
+        samesite=samesite,
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        secure=secure,
+        samesite=samesite,
+    )
 
 
 # ═══════════════════════════════════════════════════════
@@ -316,4 +330,16 @@ def get_usage(user: User = Depends(get_current_user), db: Session = Depends(get_
         "free_message_limit": FREE_MESSAGE_LIMIT,
         "message_count": user.message_count,
         "has_api_key": has_api_key,
+    }
+
+
+@router.get("/debug")
+def debug_env():
+    """Debug endpoint to check environment configuration."""
+    return {
+        "is_production": IS_PRODUCTION,
+        "vercel_env": os.getenv("VERCEL"),
+        "environment": os.getenv("ENVIRONMENT"),
+        "cookie_secure": IS_PRODUCTION,
+        "cookie_samesite": "none" if IS_PRODUCTION else "lax",
     }
