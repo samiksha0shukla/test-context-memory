@@ -29,11 +29,17 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 # Validate required environment variables
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is required")
+    # Fallback to ephemeral SQLite in /tmp (writable in Vercel Lambda)
+    print("Warning: DATABASE_URL not set. Using ephemeral SQLite in /tmp.")
+    DATABASE_URL = "sqlite:////tmp/context_memory.db"
+
 if not JWT_SECRET_KEY:
-    raise ValueError("JWT_SECRET_KEY environment variable is required")
+    print("Warning: JWT_SECRET_KEY not set. Using unsafe default.")
+    JWT_SECRET_KEY = "unsafe-default-secret-key-change-me"
+
 if not ENCRYPTION_KEY:
-    raise ValueError("ENCRYPTION_KEY environment variable is required")
+    print("Warning: ENCRYPTION_KEY not set. Using unsafe default.")
+    ENCRYPTION_KEY = "unsafe-default-encryption-key-change-me"
 
 
 def init_contextmemory(api_key: str = None):
@@ -41,7 +47,9 @@ def init_contextmemory(api_key: str = None):
     # Use provided API key or fall back to environment variable
     key = api_key or OPENROUTER_API_KEY
     if not key:
-        raise ValueError("OpenRouter API key is required for ContextMemory initialization")
+        # Don't raise error here, let the chat endpoint handle it gracefully with 503
+        print("Warning: OpenRouter API key not found during initialization")
+        pass
 
     configure(
         openrouter_api_key=key,
