@@ -58,7 +58,7 @@ function AuthActionButton() {
     return (
       <Link href="/dashboard">
         <Button size="sm">
-          Go to Dashboard
+          Create Your Own
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </Link>

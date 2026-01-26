@@ -17,8 +17,8 @@ export function SignInForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Get redirect URL from query params, default to dashboard
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  // Get redirect URL from query params, default to home page
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

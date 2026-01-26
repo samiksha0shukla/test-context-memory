@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiKeyModal } from "@/components/api-key/ApiKeyModal";
 import { Loader2 } from "lucide-react";
@@ -15,11 +15,13 @@ export default function ProtectedLayout({
   const { isAuthenticated, isLoading, needsApiKey, refreshApiKeyStatus, refreshUser } = useAuth();
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/signin");
+      router.push(`/signin?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, pathname]);
 
   // Only show API key modal when free trial is expired and user has no key
   useEffect(() => {
