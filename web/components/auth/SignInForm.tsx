@@ -76,7 +76,7 @@ export function SignInForm() {
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
         <Link
-          href={redirectUrl !== "/dashboard" ? `/signup?redirect=${encodeURIComponent(redirectUrl)}` : "/signup"}
+          href={redirectUrl === "/" ? "/signup" : `/signup?redirect=${encodeURIComponent(redirectUrl)}`}
           className="text-primary hover:underline"
         >
           Sign up

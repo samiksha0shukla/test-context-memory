@@ -7,15 +7,29 @@ import { Logo } from "@/components/ui/Logo";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { useSearchParams } from "next/navigation";
+
 export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+      <SignUpContent />
+    </Suspense>
+  );
+}
+
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Get redirect URL from query params, default to home
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
+      router.push(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, redirectUrl]);
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
