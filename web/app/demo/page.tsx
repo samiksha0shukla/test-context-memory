@@ -6,6 +6,7 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { DEMO_DATA } from "@/lib/demo-data";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Dynamic import for the demo-specific graph component
 const DemoGraph = dynamic(
@@ -31,17 +32,12 @@ export default function DemoPage() {
           </div>
         </div>
 
-        {/* Right: Create Your Own Button */}
+        {/* Right: Create Your Own / Dashboard Button */}
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground hidden md:block">
             Explore the memory visualization
           </span>
-          <Link href="/signup">
-            <Button size="sm">
-              Create Your Own
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
+          <AuthActionButton />
         </div>
       </nav>
 
@@ -50,5 +46,31 @@ export default function DemoPage() {
         <DemoGraph data={DEMO_DATA} />
       </div>
     </div>
+  );
+}
+
+function AuthActionButton() {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) return null;
+
+  if (isAuthenticated) {
+    return (
+      <Link href="/dashboard">
+        <Button size="sm">
+          Go to Dashboard
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
+      </Link>
+    );
+  }
+
+  return (
+    <Link href="/signup">
+      <Button size="sm">
+        Create Your Own
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </Link>
   );
 }
