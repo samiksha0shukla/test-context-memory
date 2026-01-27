@@ -6,18 +6,24 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowRight, ChevronDown, LogOut, Mail, BookOpen } from "lucide-react";
+import { ArrowRight, ChevronDown, LogOut, Mail, BookOpen, LayoutDashboard } from "lucide-react";
 
 export default function DocsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showProductsDropdown, setShowProductsDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const productsDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setShowProfileDropdown(false);
+      }
+      if (productsDropdownRef.current && !productsDropdownRef.current.contains(target)) {
+        setShowProductsDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -43,15 +49,61 @@ export default function DocsPage() {
             <Link href="/docs" className="text-sm font-medium text-foreground text-amber-500 transition-colors">
               Docs
             </Link>
-            <Link href="/products" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Products
-            </Link>
+            <div ref={productsDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileDropdown(false);
+                  setShowProductsDropdown((v) => !v);
+                }}
+                aria-expanded={showProductsDropdown}
+                aria-haspopup="true"
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Products
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showProductsDropdown ? "rotate-180" : ""}`} />
+              </button>
+              {showProductsDropdown && (
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[220px] bg-card border border-border rounded-lg shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+                  role="menu"
+                >
+                  <Link
+                    href="/docs"
+                    role="menuitem"
+                    onClick={() => setShowProductsDropdown(false)}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border"
+                  >
+                    <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="flex flex-col gap-0.5">
+                      <span>Pip package</span>
+                      <span className="text-xs text-muted-foreground">Docs & API</span>
+                    </span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    role="menuitem"
+                    onClick={() => setShowProductsDropdown(false)}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="flex flex-col gap-0.5">
+                      <span>Interactive dashboard</span>
+                      <span className="text-xs text-muted-foreground">Visualize memories</span>
+                    </span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </nav>
           <div className="flex items-center gap-4">
             {isLoading ? null : isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  onClick={() => {
+                    setShowProductsDropdown(false);
+                    setShowProfileDropdown((v) => !v);
+                  }}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm font-semibold">

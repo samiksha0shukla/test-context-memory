@@ -39,3 +39,15 @@ export function initializeSVG(
 
   return { g, zoom };
 }
+
+/**
+ * Initializes SVG for landing hero graph: main group and links container, no zoom.
+ */
+export function initializeLandingSVG(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
+): d3.Selection<SVGGElement, unknown, null, undefined> {
+  svg.selectAll("*").remove();
+  const g = svg.append("g");
+  g.append("g").attr("class", "links-container");
+  return g;
+}
