@@ -176,3 +176,46 @@
     opacity: 0.5;
   }
 }
+
+/* Landing page — grain overlay for texture/depth */
+.landing-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Landing page — headline gradient */
+.landing-gradient-text {
+  background: linear-gradient(135deg, #d97706 0%, #ea580c 50%, #c2410c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Landing page — code card subtle border glow */
+.landing-code-card {
+  position: relative;
+}
+.landing-code-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.15), transparent 50%, rgba(217, 119, 6, 0.08));
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Landing page — feature cards subtle lift */
+.landing-feature-card {
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.landing-feature-card:hover {
+  transform: translateY(-2px);
+}
