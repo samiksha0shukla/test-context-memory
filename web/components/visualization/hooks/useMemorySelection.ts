@@ -1,22 +1,52 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Memory, MemoryNode } from "@/types/memory";
 
 /**
  * Hook to manage memory selection state and actions
- * Handles bubble selection, linked memories, and clearing selection
+ * Handles bubble selection, linked memories, panel visibility, and clearing selection
+ * 
+ * Mobile behavior:
+ * - Tap bubble: Shows panel + connections
+ * - Close panel (X): Closes panel but keeps connections visible
+ * - Tap empty space: Clears connections
  */
 export function useMemorySelection(data: any) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [linkedMemories, setLinkedMemories] = useState<Memory[]>([]);
   const [visibleLinkCount, setVisibleLinkCount] = useState(0);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Clear selection when clicking empty space
   const clearSelection = useCallback(() => {
     setSelectedId(null);
     setSelectedMemory(null);
     setLinkedMemories([]);
+    setIsPanelOpen(false);
   }, []);
+
+  // Close panel only (keep connections visible on mobile)
+  const closePanel = useCallback(() => {
+    setIsPanelOpen(false);
+    setSelectedMemory(null);
+    setLinkedMemories([]);
+    // On mobile, keep selectedId to maintain connections
+    // On desktop, clear everything
+    if (!isMobile) {
+      setSelectedId(null);
+    }
+  }, [isMobile]);
 
   // Handle bubble click - update panel without changing positions
   const selectBubble = useCallback((node: MemoryNode, event: MouseEvent) => {
@@ -43,6 +73,7 @@ export function useMemorySelection(data: any) {
       } as Memory)
     );
     setLinkedMemories(linked);
+    setIsPanelOpen(true);
   }, [data]);
 
   // Handle selecting a linked memory
@@ -69,7 +100,11 @@ export function useMemorySelection(data: any) {
     setLinkedMemories,
     visibleLinkCount,
     setVisibleLinkCount,
+    isPanelOpen,
+    setIsPanelOpen,
+    isMobile,
     clearSelection,
+    closePanel,
     selectBubble,
     selectLinkedMemory,
   };

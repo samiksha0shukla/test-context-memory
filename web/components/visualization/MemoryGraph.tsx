@@ -212,16 +212,15 @@ export function MemoryGraph() {
       {/* Controls hint */}
       <GraphHint />
 
-      {/* Detail Panel */}
-      <MemoryDetailPanel
-        memory={selection.selectedMemory}
-        linkedMemories={selection.linkedMemories}
-        onClose={() => {
-          selection.setSelectedMemory(null);
-          selection.setSelectedId(null);
-        }}
-        onSelectMemory={(id) => selection.selectLinkedMemory(id, selection.selectBubble)}
-      />
+      {/* Detail Panel - only show when isPanelOpen is true */}
+      {selection.isPanelOpen && (
+        <MemoryDetailPanel
+          memory={selection.selectedMemory}
+          linkedMemories={selection.linkedMemories}
+          onClose={selection.closePanel}
+          onSelectMemory={(id) => selection.selectLinkedMemory(id, selection.selectBubble)}
+        />
+      )}
     </div>
   );
 }

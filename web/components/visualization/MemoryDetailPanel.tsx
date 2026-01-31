@@ -31,9 +31,17 @@ export function MemoryDetailPanel({
   };
 
   return (
-    <div className="absolute top-0 right-0 w-96 h-full bg-card border-l border-border shadow-xl flex flex-col animate-slide-in-right">
-      {/* Header */}
-      <div className="border-b border-border p-4 flex items-start justify-between">
+    <>
+      {/* Mobile backdrop overlay */}
+      <div 
+        className="fixed inset-0 bg-black/30 z-40 md:hidden"
+        onClick={onClose}
+      />
+      
+      {/* Panel - full width on mobile, fixed width on desktop */}
+      <div className="fixed md:absolute top-0 right-0 w-full md:w-96 h-full bg-card border-l border-border shadow-xl flex flex-col animate-slide-in-right z-50">
+        {/* Header */}
+        <div className="border-b border-border p-4 flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
           {/* Memory Icon */}
           <div
@@ -141,5 +149,6 @@ export function MemoryDetailPanel({
         )}
       </div>
     </div>
+    </>
   );
 }

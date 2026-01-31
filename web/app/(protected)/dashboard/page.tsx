@@ -67,7 +67,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Navbar - thin, matching reference image exactly */}
-      <nav className="flex items-center justify-between h-14 px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm flex-shrink-0">
+      <nav className="flex items-center justify-between h-14 px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm flex-shrink-0 z-50 relative">
         {/* Left: Logo + Panel Toggle */}
         <div className="flex items-center gap-4">
           <Logo size={28} showText={false} />

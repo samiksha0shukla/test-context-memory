@@ -31,44 +31,110 @@ export function createTooltip() {
 }
 
 /**
+ * Check if device is mobile
+ */
+function isMobileDevice(): boolean {
+  return window.innerWidth < 768 || 'ontouchstart' in window;
+}
+
+/**
  * Attaches tooltip event handlers to node elements
+ * On desktop: hover shows tooltip
+ * On mobile: long-press (500ms) shows tooltip
  */
 export function attachTooltipHandlers(
   nodeSelection: d3.Selection<SVGGElement, MemoryNode, SVGGElement, unknown>,
   tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
 ) {
+  let longPressTimer: number | null = null;
+  let isLongPress = false;
+
+  const showTooltip = (event: MouseEvent | TouchEvent, d: MemoryNode) => {
+    // Use validConnectionCount if available, otherwise fallback to connections.length
+    const connectionCount = (d as any).validConnectionCount ?? (d.connections ? d.connections.length : 0);
+
+    // Get position from either mouse or touch event
+    let clientX: number, clientY: number;
+    if ('touches' in event) {
+      clientX = event.touches[0]?.clientX || 0;
+      clientY = event.touches[0]?.clientY || 0;
+    } else {
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    tooltip
+      .style("visibility", "visible")
+      .style("opacity", "0")
+      .html(`
+        <div style="font-weight: 600; margin-bottom: 8px; color: ${getBubbleColor(d.type, d.created_at)}; font-size: 14px;">
+          Memory #${d.local_id} · ${d.type === "semantic" ? "Semantic Fact" : "Episodic Bubble"}
+        </div>
+        <div style="color: #f0f0f0; line-height: 1.6;">${truncateText(d.text, 200)}</div>
+        ${connectionCount > 0 ?
+          `<div style="margin-top: 10px; font-size: 11px; color: #aaa; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+            🔗 ${connectionCount} connection${connectionCount !== 1 ? 's' : ''}
+          </div>` : ''
+        }
+      `);
+
+    // Position tooltip
+    const tooltipNode = tooltip.node() as HTMLElement;
+    const tooltipWidth = tooltipNode?.offsetWidth || 300;
+    const tooltipHeight = tooltipNode?.offsetHeight || 100;
+
+    let left = clientX + 15;
+    let top = clientY - 10;
+
+    if (left + tooltipWidth > window.innerWidth) {
+      left = clientX - tooltipWidth - 15;
+    }
+
+    if (top + tooltipHeight > window.innerHeight) {
+      top = window.innerHeight - tooltipHeight - 10;
+    }
+
+    tooltip
+      .style("top", top + "px")
+      .style("left", left + "px");
+
+    // Fade in animation
+    tooltip
+      .transition()
+      .duration(150)
+      .style("opacity", "1");
+  };
+
+  const hideTooltip = () => {
+    tooltip
+      .transition()
+      .duration(100)
+      .style("opacity", "0")
+      .on("end", () => {
+        tooltip.style("visibility", "hidden");
+      });
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  };
+
   nodeSelection
+    // Desktop: hover behavior
     .on("mouseenter", (event, d) => {
-      // Use validConnectionCount if available, otherwise fallback to connections.length
-      const connectionCount = (d as any).validConnectionCount ?? (d.connections ? d.connections.length : 0);
-
-      tooltip
-        .style("visibility", "visible")
-        .style("opacity", "0")
-        .html(`
-          <div style="font-weight: 600; margin-bottom: 8px; color: ${getBubbleColor(d.type, d.created_at)}; font-size: 14px;">
-            Memory #${d.local_id} · ${d.type === "semantic" ? "Semantic Fact" : "Episodic Bubble"}
-          </div>
-          <div style="color: #f0f0f0; line-height: 1.6;">${truncateText(d.text, 200)}</div>
-          ${connectionCount > 0 ?
-            `<div style="margin-top: 10px; font-size: 11px; color: #aaa; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-              🔗 ${connectionCount} connection${connectionCount !== 1 ? 's' : ''}
-            </div>` : ''
-          }
-        `);
-
-      // Fade in animation
-      tooltip
-        .transition()
-        .duration(150)
-        .style("opacity", "1");
+      if (isMobileDevice()) return; // Skip on mobile
+      showTooltip(event, d);
     })
     .on("mousemove", (event) => {
+      if (isMobileDevice()) return;
+      
       const tooltipNode = tooltip.node() as HTMLElement;
       const tooltipWidth = tooltipNode?.offsetWidth || 300;
       const tooltipHeight = tooltipNode?.offsetHeight || 100;
 
-      // Position tooltip to avoid going off-screen
       let left = event.clientX + 15;
       let top = event.clientY - 10;
 
@@ -85,12 +151,30 @@ export function attachTooltipHandlers(
         .style("left", left + "px");
     })
     .on("mouseleave", () => {
-      tooltip
-        .transition()
-        .duration(100)
-        .style("opacity", "0")
-        .on("end", () => {
-          tooltip.style("visibility", "hidden");
-        });
+      if (isMobileDevice()) return;
+      hideTooltip();
+    })
+    // Mobile: long-press behavior
+    .on("touchstart", (event, d) => {
+      isLongPress = false;
+      clearLongPress();
+      
+      longPressTimer = window.setTimeout(() => {
+        isLongPress = true;
+        showTooltip(event, d);
+        // Auto-hide after 3 seconds on mobile
+        setTimeout(hideTooltip, 3000);
+      }, 500); // 500ms for long press
+    })
+    .on("touchend", () => {
+      clearLongPress();
+      // If it was a long press, hide tooltip after a delay
+      if (isLongPress) {
+        setTimeout(hideTooltip, 500);
+      }
+    })
+    .on("touchmove", () => {
+      // Cancel long press if user moves finger
+      clearLongPress();
     });
 }
