@@ -203,7 +203,8 @@ export default function DocsPage() {
             </div>
           </nav>
 
-          <div className="flex items-center gap-4">
+          {/* Desktop Auth Actions - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-4">
             {isLoading ? null : isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -277,6 +278,29 @@ export default function DocsPage() {
                   {label}
                 </a>
               ))}
+            </div>
+            {/* Mobile Auth Actions */}
+            <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2">
+              {isAuthenticated && user ? (
+                <>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">{user.name}</div>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg">
+                    Go to Dashboard
+                  </Link>
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="px-3 py-2 text-sm text-red-500 text-left hover:bg-muted/50 rounded-lg">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <div className="flex gap-2">
+                  <Link href="/signin" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" size="sm">Sign In</Button>
+                  </Link>
+                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button size="sm" className="rounded-full">Sign Up</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </nav>
         </div>

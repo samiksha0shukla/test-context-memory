@@ -112,12 +112,14 @@ export function LandingHeroGraph({ data }: LandingHeroGraphProps) {
   }, [selectedId]);
 
   return (
-    <div className="w-full max-w-[480px] h-[380px] overflow-hidden shrink-0">
+    <div className="w-full max-w-[480px] h-[380px] overflow-hidden shrink-0 flex items-center justify-center">
       <svg
         ref={svgRef}
         width={WIDTH}
         height={HEIGHT}
-        className="w-full h-full graph-canvas"
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="max-w-full h-auto graph-canvas"
         style={{ touchAction: "none" }}
       />
     </div>
