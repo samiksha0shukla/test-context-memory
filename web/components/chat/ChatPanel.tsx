@@ -261,8 +261,8 @@ export function ChatPanel({ onMessageSent, onNeedsApiKey }: ChatPanelProps) {
             rows={1}
           />
 
-          {/* Action Buttons */}
-          <div className="absolute right-2 bottom-2 flex items-center gap-1">
+          {/* Action Buttons - vertically centered */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             <button
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}

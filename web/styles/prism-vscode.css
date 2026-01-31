@@ -1,0 +1,181 @@
+/* Custom Prism theme matching VS Code Dark+ / landing page style */
+
+/* Code blocks */
+code[class*="language-"],
+pre[class*="language-"] {
+    color: #d4d4d4;
+    background: none;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.875rem;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.6;
+    tab-size: 2;
+    hyphens: none;
+}
+
+pre[class*="language-"] {
+    padding: 1rem;
+    margin: 0;
+    overflow: auto;
+    background: #1c1c1c;
+}
+
+/* Inline code */
+:not(pre)>code[class*="language-"] {
+    padding: 0.1em 0.3em;
+    border-radius: 0.3em;
+    white-space: normal;
+    background: #1c1c1c;
+}
+
+/* Comments */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #6a9955;
+    font-style: italic;
+}
+
+/* Punctuation */
+.token.punctuation {
+    color: #d4d4d4;
+}
+
+/* Namespace */
+.token.namespace {
+    opacity: 0.7;
+}
+
+/* Keywords */
+.token.keyword,
+.token.control,
+.token.directive,
+.token.unit {
+    color: #c586c0;
+}
+
+/* Booleans, constants */
+.token.boolean,
+.token.constant {
+    color: #569cd6;
+}
+
+/* Numbers */
+.token.number {
+    color: #b5cea8;
+}
+
+/* Strings */
+.token.string,
+.token.char,
+.token.attr-value,
+.token.template-string {
+    color: #ce9178;
+}
+
+/* Operators */
+.token.operator,
+.token.entity,
+.token.url {
+    color: #d4d4d4;
+}
+
+/* Functions */
+.token.function {
+    color: #dcdcaa;
+}
+
+/* Classes, types */
+.token.class-name,
+.token.maybe-class-name {
+    color: #4ec9b0;
+}
+
+/* Decorators */
+.token.decorator,
+.token.annotation {
+    color: #dcdcaa;
+}
+
+/* Variables */
+.token.variable {
+    color: #9cdcfe;
+}
+
+/* Properties */
+.token.property {
+    color: #9cdcfe;
+}
+
+/* Attributes */
+.token.attr-name {
+    color: #9cdcfe;
+}
+
+/* Tags (HTML) */
+.token.tag {
+    color: #569cd6;
+}
+
+/* Selectors (CSS) */
+.token.selector {
+    color: #d7ba7d;
+}
+
+/* Important, bold */
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+
+/* Italic */
+.token.italic {
+    font-style: italic;
+}
+
+/* Inserted */
+.token.inserted {
+    color: #b5cea8;
+}
+
+/* Deleted */
+.token.deleted {
+    color: #ce9178;
+}
+
+/* Builtin functions */
+.token.builtin {
+    color: #4ec9b0;
+}
+
+/* Triple-quoted strings (Python) */
+.token.triple-quoted-string {
+    color: #6a9955;
+}
+
+/* Language-specific: Python */
+.language-python .token.keyword {
+    color: #c586c0;
+}
+
+.language-python .token.builtin {
+    color: #4ec9b0;
+}
+
+.language-python .token.function {
+    color: #dcdcaa;
+}
+
+/* Language-specific: Bash */
+.language-bash .token.function {
+    color: #dcdcaa;
+}
+
+.language-bash .token.command {
+    color: #dcdcaa;
+}

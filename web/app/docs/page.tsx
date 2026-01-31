@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
@@ -38,13 +38,114 @@ const sections = [
   { id: "how-it-works", label: "How It Works" },
 ];
 
-function CodeBlock({ code, filename }: { code: string; filename?: string }) {
+function CodeBlock({ code, filename, language = "python" }: { code: string; filename?: string; language?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Custom syntax highlighting that matches the landing page colors
+  const highlightCode = (code: string, lang: string): React.ReactNode => {
+    if (lang === "bash") {
+      // Simple bash highlighting
+      return <span className="text-[#dcdcaa]">{code}</span>;
+    }
+    
+    // Python highlighting
+    const lines = code.split('\n');
+    return lines.map((line, lineIndex) => {
+      const parts: React.ReactNode[] = [];
+      let remaining = line;
+      let key = 0;
+      
+      // Process the line character by character with patterns
+      while (remaining.length > 0) {
+        // Comments
+        if (remaining.startsWith('#')) {
+          parts.push(<span key={key++} className="text-[#6a9955]">{remaining}</span>);
+          remaining = '';
+          continue;
+        }
+        
+        // Triple-quoted strings
+        const tripleMatch = remaining.match(/^(["']{3}[\s\S]*?["']{3})/);
+        if (tripleMatch) {
+          parts.push(<span key={key++} className="text-[#6a9955]">{tripleMatch[1]}</span>);
+          remaining = remaining.slice(tripleMatch[1].length);
+          continue;
+        }
+        
+        // Strings (double or single quotes)
+        const stringMatch = remaining.match(/^(["'][^"']*["'])/);
+        if (stringMatch) {
+          parts.push(<span key={key++} className="text-[#ce9178]">{stringMatch[1]}</span>);
+          remaining = remaining.slice(stringMatch[1].length);
+          continue;
+        }
+        
+        // f-strings
+        const fstringMatch = remaining.match(/^(f["'][^"']*["'])/);
+        if (fstringMatch) {
+          parts.push(<span key={key++} className="text-[#ce9178]">{fstringMatch[1]}</span>);
+          remaining = remaining.slice(fstringMatch[1].length);
+          continue;
+        }
+        
+        // Keywords
+        const keywordMatch = remaining.match(/^(from|import|def|class|if|elif|else|for|while|try|except|finally|with|as|return|yield|raise|pass|break|continue|and|or|not|in|is|lambda|True|False|None|async|await)\b/);
+        if (keywordMatch) {
+          parts.push(<span key={key++} className="text-[#c586c0]">{keywordMatch[1]}</span>);
+          remaining = remaining.slice(keywordMatch[1].length);
+          continue;
+        }
+        
+        // Builtins/Classes (capitalized words)
+        const classMatch = remaining.match(/^([A-Z][a-zA-Z0-9_]*)/);
+        if (classMatch) {
+          parts.push(<span key={key++} className="text-[#4ec9b0]">{classMatch[1]}</span>);
+          remaining = remaining.slice(classMatch[1].length);
+          continue;
+        }
+        
+        // Function calls
+        const funcMatch = remaining.match(/^([a-z_][a-z0-9_]*)\s*(?=\()/);
+        if (funcMatch) {
+          parts.push(<span key={key++} className="text-[#dcdcaa]">{funcMatch[1]}</span>);
+          remaining = remaining.slice(funcMatch[1].length);
+          continue;
+        }
+        
+        // Numbers
+        const numMatch = remaining.match(/^(\d+\.?\d*)/);
+        if (numMatch) {
+          parts.push(<span key={key++} className="text-[#b5cea8]">{numMatch[1]}</span>);
+          remaining = remaining.slice(numMatch[1].length);
+          continue;
+        }
+        
+        // Variable names after = or as parameter
+        const varMatch = remaining.match(/^([a-z_][a-z0-9_]*)\s*(?=[=,\)])/);
+        if (varMatch) {
+          parts.push(<span key={key++} className="text-[#9cdcfe]">{varMatch[1]}</span>);
+          remaining = remaining.slice(varMatch[1].length);
+          continue;
+        }
+        
+        // Default: single character
+        parts.push(<span key={key++} className="text-[#d4d4d4]">{remaining[0]}</span>);
+        remaining = remaining.slice(1);
+      }
+      
+      return (
+        <React.Fragment key={lineIndex}>
+          {parts}
+          {lineIndex < lines.length - 1 && '\n'}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
@@ -66,8 +167,8 @@ function CodeBlock({ code, filename }: { code: string; filename?: string }) {
           </button>
         </div>
       )}
-      <pre className="p-4 text-sm leading-relaxed font-mono overflow-x-auto text-[#d4d4d4]">
-        <code>{code}</code>
+      <pre className="p-4 text-sm leading-relaxed font-mono overflow-x-auto bg-[#1C1C1C]">
+        <code>{highlightCode(code, language)}</code>
       </pre>
       {!filename && (
         <button
@@ -81,6 +182,7 @@ function CodeBlock({ code, filename }: { code: string; filename?: string }) {
     </div>
   );
 }
+
 
 export default function DocsPage() {
   const router = useRouter();
@@ -335,15 +437,6 @@ export default function DocsPage() {
                   PyPI Package
                   <ArrowRight className="w-3 h-3" />
                 </a>
-                <a 
-                  href="https://github.com/samiksha0shukla/context-memory" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  GitHub
-                  <ArrowRight className="w-3 h-3" />
-                </a>
               </div>
             </nav>
           </aside>
@@ -432,7 +525,7 @@ export default function DocsPage() {
             {/* Installation */}
             <section id="installation" className="mb-16 scroll-mt-24">
               <h2 className="text-2xl font-bold mb-6">Installation</h2>
-              <CodeBlock code="pip install contextmemory" filename="terminal" />
+              <CodeBlock code="pip install contextmemory" filename="terminal" language="bash" />
             </section>
 
             {/* Quick Start */}
@@ -832,24 +925,6 @@ while True:
                   className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
                 >
                   PyPI Package
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-                <a 
-                  href="https://github.com/samiksha0shukla/context-memory" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
-                >
-                  GitHub Repository
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-                <a 
-                  href="https://github.com/samiksha0shukla/context-memory/issues" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
-                >
-                  Issue Tracker
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
