@@ -6,13 +6,89 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowRight, ChevronDown, LogOut, Mail, BookOpen, LayoutDashboard } from "lucide-react";
+import { 
+  ArrowRight, 
+  ChevronDown, 
+  LogOut, 
+  Mail, 
+  BookOpen, 
+  LayoutDashboard, 
+  Brain, 
+  Zap, 
+  RefreshCw, 
+  GitBranch, 
+  Settings, 
+  Database,
+  Menu,
+  X,
+  Copy,
+  Check,
+  ChevronRight
+} from "lucide-react";
+
+const sections = [
+  { id: "features", label: "Features" },
+  { id: "installation", label: "Installation" },
+  { id: "quick-start", label: "Quick Start" },
+  { id: "basic-usage", label: "Basic Usage" },
+  { id: "memory-types", label: "Memory Types" },
+  { id: "full-example", label: "Full Example" },
+  { id: "configuration", label: "Configuration" },
+  { id: "api-reference", label: "API Reference" },
+  { id: "how-it-works", label: "How It Works" },
+];
+
+function CodeBlock({ code, filename }: { code: string; filename?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group rounded-xl border border-border/60 bg-[#1C1C1C] overflow-hidden">
+      {filename && (
+        <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#252525]">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+            <span className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
+            <span className="w-3 h-3 rounded-full bg-[#28C840]" />
+            <span className="ml-3 text-xs text-white/40 font-mono">{filename}</span>
+          </div>
+          <button
+            onClick={handleCopy}
+            className="p-1.5 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+            aria-label="Copy code"
+          >
+            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
+      )}
+      <pre className="p-4 text-sm leading-relaxed font-mono overflow-x-auto text-[#d4d4d4]">
+        <code>{code}</code>
+      </pre>
+      {!filename && (
+        <button
+          onClick={handleCopy}
+          className="absolute top-3 right-3 p-1.5 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+          aria-label="Copy code"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function DocsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showProductsDropdown, setShowProductsDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("features");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const productsDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -30,6 +106,26 @@ export default function DocsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -70% 0px" }
+    );
+
+    sections.forEach(({ id }) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleLogout = async () => {
     await logout();
     setShowProfileDropdown(false);
@@ -38,15 +134,25 @@ export default function DocsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - same as landing, Docs active */}
-      <header className="border-b border-border/50">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between relative">
-          <Logo size={32} />
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <Logo size={32} />
+          </div>
+
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
-            <Link href="/docs" className="text-sm font-medium text-foreground text-amber-500 transition-colors">
+            <Link href="/docs" className="text-sm font-medium text-amber-600 transition-colors">
               Docs
             </Link>
             <div ref={productsDropdownRef} className="relative">
@@ -65,7 +171,7 @@ export default function DocsPage() {
               </button>
               {showProductsDropdown && (
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[220px] bg-card border border-border rounded-lg shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[220px] bg-card border border-border rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200"
                   role="menu"
                 >
                   <Link
@@ -96,6 +202,7 @@ export default function DocsPage() {
               )}
             </div>
           </nav>
+
           <div className="flex items-center gap-4">
             {isLoading ? null : isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
@@ -112,7 +219,7 @@ export default function DocsPage() {
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showProfileDropdown ? "rotate-180" : ""}`} />
                 </button>
                 {showProfileDropdown && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-lg py-2 z-50">
                     <div className="px-4 py-3 border-b border-border">
                       <p className="font-medium text-sm">{user.name}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -138,10 +245,10 @@ export default function DocsPage() {
             ) : (
               <>
                 <Link href="/signin">
-                  <Button variant="ghost">Sign In</Button>
+                  <Button variant="ghost" className="text-sm">Sign In</Button>
                 </Link>
                 <Link href="/signup">
-                  <Button>Sign Up</Button>
+                  <Button className="text-sm rounded-full px-5">Sign Up</Button>
                 </Link>
               </>
             )}
@@ -149,211 +256,587 @@ export default function DocsPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 md:py-12 max-w-4xl">
-        {/* Hero */}
-        <section className="mb-12">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-            <BookOpen className="w-4 h-4" />
-            <span>Context Memory</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
-              Documentation
-            </span>
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Long-term memory for AI conversations — production-ready in minutes.
-          </p>
-        </section>
+      {/* Mobile Navigation Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-30 lg:hidden">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <nav className="absolute left-0 top-16 w-72 h-[calc(100vh-4rem)] bg-card border-r border-border p-4 overflow-y-auto">
+            <div className="space-y-1">
+              {sections.map(({ id, label }) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    activeSection === id
+                      ? "bg-amber-500/10 text-amber-600 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <ChevronRight className={`w-4 h-4 transition-transform ${activeSection === id ? "text-amber-500" : ""}`} />
+                  {label}
+                </a>
+              ))}
+            </div>
+          </nav>
+        </div>
+      )}
 
-        {/* On this page */}
-        <nav id="on-this-page" className="mb-10 p-4 rounded-lg border border-border bg-card">
-          <h2 className="text-sm font-semibold text-foreground mb-3">On this page</h2>
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
-            <li><a href="#overview" className="hover:text-foreground transition-colors">Overview</a></li>
-            <li><a href="#quick-start" className="hover:text-foreground transition-colors">Quick Start</a></li>
-            <li><a href="#setup" className="hover:text-foreground transition-colors">Setup</a></li>
-            <li><a href="#core-operations" className="hover:text-foreground transition-colors">Core Operations</a></li>
-            <li><a href="#memory-types" className="hover:text-foreground transition-colors">Memory Types</a></li>
-            <li><a href="#reference" className="hover:text-foreground transition-colors">Reference</a></li>
-          </ul>
-        </nav>
+      <div className="container mx-auto px-4 md:px-6 py-8 lg:py-12">
+        <div className="flex gap-12">
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block w-64 shrink-0">
+            <nav className="sticky top-24 space-y-1">
+              <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Documentation</p>
+              {sections.map(({ id, label }) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                    activeSection === id
+                      ? "bg-amber-500/10 text-amber-600 font-medium border-l-2 border-amber-500"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  {label}
+                </a>
+              ))}
+              <div className="pt-6 mt-6 border-t border-border">
+                <a 
+                  href="https://pypi.org/project/contextmemory/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  PyPI Package
+                  <ArrowRight className="w-3 h-3" />
+                </a>
+                <a 
+                  href="https://github.com/samiksha0shukla/context-memory" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  GitHub
+                  <ArrowRight className="w-3 h-3" />
+                </a>
+              </div>
+            </nav>
+          </aside>
 
-        {/* Overview */}
-        <section id="overview" className="space-y-6 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Overview</h2>
-          <div className="space-y-4 text-foreground">
-            <h3 className="text-lg font-medium text-foreground">Why it matters</h3>
-            <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-              <li><strong className="text-foreground">Personalized replies:</strong> Semantic facts and episodic bubbles reduce repeat questions and keep context across chats.</li>
-              <li><strong className="text-foreground">Dual memory:</strong> Stable semantic facts and time-bound episodic bubbles with automatic connections.</li>
-              <li><strong className="text-foreground">Ready to ship:</strong> SQLite by default, optional PostgreSQL; works with OpenAI or OpenRouter.</li>
-            </ul>
-          </div>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-muted/30 font-medium text-foreground">
-                  <th className="px-4 py-2 border-b border-border text-left">Feature</th>
-                  <th className="px-4 py-2 border-b border-border text-left">Why it helps</th>
-                </tr>
-              </thead>
-              <tbody className="text-muted-foreground text-sm">
-                <tr><td className="px-4 py-2 border-b border-border">Fast setup</td><td className="px-4 py-2 border-b border-border">Add a few lines and you’re production-ready — no vector DB or LLM wiring required.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">FAISS-backed search</td><td className="px-4 py-2 border-b border-border">O(log n) vector search instead of O(n) scans over memories.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Smart deduplication</td><td className="px-4 py-2 border-b border-border">ADD/UPDATE/REPLACE/NOOP for semantic facts — duplicates and contradictions handled automatically.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Bubble–fact linking</td><td className="px-4 py-2 border-b border-border">New episodic bubbles auto-link to related semantic memories.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Multi-provider</td><td className="px-4 py-2 border-b border-border">Same Memory API whether you use OpenAI or OpenRouter (Claude, etc.).</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 max-w-4xl">
+            {/* Hero */}
+            <section className="mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-medium mb-6">
+                <BookOpen className="w-3.5 h-3.5" />
+                ContextMemory Documentation
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                Long-term memory for{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">
+                  AI conversations
+                </span>
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mb-8">
+                ContextMemory extracts, stores, and retrieves important facts from conversations, enabling AI Agents to remember user preferences, context, and history across sessions.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/dashboard">
+                  <Button className="rounded-full px-6 bg-foreground text-background hover:bg-foreground/90">
+                    Try Dashboard
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+                <a href="#quick-start">
+                  <Button variant="outline" className="rounded-full px-6">
+                    Quick Start
+                  </Button>
+                </a>
+              </div>
+            </section>
 
-        {/* Quick Start */}
-        <section id="quick-start" className="space-y-6 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Quick Start</h2>
-          <p className="text-muted-foreground">
-            Install the package, then configure, create tables once at startup, and use one session per request.
-          </p>
-          <div className="rounded-lg border border-border bg-muted/50 p-4 font-mono text-sm text-foreground overflow-x-auto">
-            <pre>pip install contextmemory</pre>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/50 p-4 font-mono text-sm text-foreground overflow-x-auto">
-            <pre>{`from contextmemory import configure, create_table, Memory, SessionLocal
+            {/* Features */}
+            <section id="features" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Features</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-amber-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
+                    <Brain className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Dual Memory Types</h3>
+                  <p className="text-sm text-muted-foreground">Semantic facts + Episodic bubbles for complete context</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-green-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                    <Zap className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Fast Search</h3>
+                  <p className="text-sm text-muted-foreground">FAISS-powered O(log n) vector search</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-blue-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                    <RefreshCw className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Smart Updates</h3>
+                  <p className="text-sm text-muted-foreground">Automatic contradiction detection & replacement</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-purple-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
+                    <GitBranch className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Memory Connections</h3>
+                  <p className="text-sm text-muted-foreground">Bubbles auto-link to related facts</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-pink-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center mb-4 group-hover:bg-pink-500/20 transition-colors">
+                    <Settings className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Multi-Provider</h3>
+                  <p className="text-sm text-muted-foreground">OpenAI or OpenRouter (Claude, etc.)</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-cyan-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-colors">
+                    <Database className="w-5 h-5 text-cyan-600" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Flexible Storage</h3>
+                  <p className="text-sm text-muted-foreground">SQLite (default) or PostgreSQL</p>
+                </div>
+              </div>
+            </section>
 
-configure(openai_api_key="your-api-key")  # or set OPENAI_API_KEY
+            {/* Installation */}
+            <section id="installation" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Installation</h2>
+              <CodeBlock code="pip install contextmemory" filename="terminal" />
+            </section>
+
+            {/* Quick Start */}
+            <section id="quick-start" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Quick Start</h2>
+              
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-600 text-sm flex items-center justify-center font-bold">1</span>
+                    OpenAI (Direct)
+                  </h3>
+                  <CodeBlock 
+                    filename="quickstart_openai.py"
+                    code={`from contextmemory import configure, create_table, Memory, SessionLocal
+
+# Configure with OpenAI
+configure(
+    openai_api_key="sk-...",
+    database_url="postgresql://...",  # Optional, defaults to SQLite
+)
+
+# Create tables
 create_table()
 
+# Use memory
 db = SessionLocal()
-memory = Memory(db)
+memory = Memory(db)`}
+                  />
+                </div>
 
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-600 text-sm flex items-center justify-center font-bold">2</span>
+                    OpenRouter (Claude, etc.)
+                  </h3>
+                  <CodeBlock 
+                    filename="quickstart_openrouter.py"
+                    code={`from contextmemory import configure, create_table, Memory, SessionLocal
+
+# Configure with OpenRouter
+configure(
+    openrouter_api_key="sk-or-v1-...",
+    llm_provider="openrouter",
+    llm_model="anthropic/claude-sonnet-4.5",  # Or any OpenRouter model
+    embedding_model="openai/text-embedding-3-small",
+    database_url="postgresql://...",
+)
+
+create_table()
+db = SessionLocal()
+memory = Memory(db)`}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-sm flex items-center justify-center font-bold">⚡</span>
+                    Environment Variables (Alternative)
+                  </h3>
+                  <CodeBlock 
+                    filename=".env"
+                    code={`# For OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# For OpenRouter
+export OPENROUTER_API_KEY="sk-or-v1-..."
+
+# Optional
+export DATABASE_URL="postgresql://..."`}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Basic Usage */}
+            <section id="basic-usage" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Basic Usage</h2>
+              
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Add Memories</h3>
+                  <CodeBlock 
+                    filename="add_memories.py"
+                    code={`# Add memories from a conversation
 messages = [
     {"role": "user", "content": "Hi, I'm Samiksha and I love Python programming"},
     {"role": "assistant", "content": "Nice to meet you! Python is great."},
 ]
-result = memory.add(messages=messages, conversation_id=1)
-# result: {"semantic": ["User is named Samiksha", "User loves Python"], "bubbles": []}
 
-results = memory.search(
+result = memory.add(messages=messages, conversation_id=1)
+# Returns: {'semantic': ['User is named Samiksha', 'User loves Python'], 'bubbles': []}`}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Search Memories</h3>
+                  <CodeBlock 
+                    filename="search_memories.py"
+                    code={`results = memory.search(
     query="What programming language does the user like?",
     conversation_id=1,
-    limit=5,
+    limit=5
 )
-# results["results"] includes scored memories (type "semantic" or "bubble")`}</pre>
-          </div>
-        </section>
 
-        {/* Setup */}
-        <section id="setup" className="space-y-6 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Setup</h2>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-            <li><strong className="text-foreground">Configure</strong> — call <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">configure(...)</code> before any other ops, or set <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">OPENAI_API_KEY</code>, <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">OPENROUTER_API_KEY</code>, <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">DATABASE_URL</code> in the environment.</li>
-            <li><strong className="text-foreground">Database</strong> — SQLite at <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">~/.contextmemory/memory.db</code> by default; pass <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">database_url</code> for PostgreSQL.</li>
-            <li><strong className="text-foreground">Tables</strong> — call <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">create_table()</code> once at app startup; it’s idempotent.</li>
-            <li><strong className="text-foreground">Sessions</strong> — use <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-sm">SessionLocal()</code> per request and close when done.</li>
-          </ul>
-          <div className="rounded-lg border border-border bg-muted/50 p-4 font-mono text-sm text-foreground overflow-x-auto">
-            <pre>{`from contextmemory import configure, SessionLocal, Memory
+print(results)
+# {
+#   'query': '...',
+#   'results': [
+#     {'memory_id': 1, 'memory': 'User loves Python programming', 'type': 'semantic', 'score': 0.89}
+#   ]
+# }`}
+                  />
+                </div>
 
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Update & Delete</h3>
+                  <CodeBlock 
+                    filename="update_delete.py"
+                    code={`# Update a memory
+memory.update(memory_id=1, text="User is an expert Python developer")
+
+# Delete a memory
+memory.delete(memory_id=1)`}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Memory Types */}
+            <section id="memory-types" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Memory Types</h2>
+              
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <div className="p-6 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                  <h3 className="text-lg font-semibold mb-3 text-amber-600">Semantic Facts</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Stable, long-term truths about the user:</p>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Name, preferences, skills
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Professional background
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Dietary preferences, relationships
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-6 rounded-xl border border-blue-500/30 bg-blue-500/5">
+                  <h3 className="text-lg font-semibold mb-3 text-blue-600">Episodic Bubbles</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Time-bound moments with automatic connections:</p>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Current tasks, deadlines
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Active problems being solved
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Significant events
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <CodeBlock 
+                filename="bubbles_example.py"
+                code={`# Bubbles auto-connect to related semantic facts
+memory.add(
+    messages=[
+        {"role": "user", "content": "I'm debugging a FastAPI auth issue"},
+        {"role": "assistant", "content": "Let me help with that."}
+    ],
+    conversation_id=1
+)
+# Creates bubble: "User is debugging FastAPI auth issue"
+# Auto-connects to: "User works on backend development"`}
+              />
+            </section>
+
+            {/* Full Example */}
+            <section id="full-example" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Full Example: Chat with Memory</h2>
+              <CodeBlock 
+                filename="chat_with_memory.py"
+                code={`from openai import OpenAI
+from contextmemory import configure, create_table, Memory, SessionLocal
+
+# Configure
 configure(
-    openai_api_key="your-key",
-    database_url="postgresql://...",  # optional
+    openrouter_api_key="sk-or-v1-...",
+    llm_provider="openrouter",
+    llm_model="anthropic/claude-sonnet-4.5",
+    embedding_model="openai/text-embedding-3-small",
+    database_url="postgresql://...",
+)
+
+create_table()
+
+# Initialize
+chat_client = OpenAI(
+    api_key="sk-or-v1-...",
+    base_url="https://openrouter.ai/api/v1"
 )
 db = SessionLocal()
-memory = Memory(db)`}</pre>
-          </div>
-        </section>
+memory = Memory(db)
 
-        {/* Core Operations */}
-        <section id="core-operations" className="space-y-8 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Core Operations</h2>
+def chat_with_memories(message: str, conversation_id: int = 1) -> str:
+    # 1. Search relevant memories
+    search_results = memory.search(
+        query=message,
+        conversation_id=conversation_id,
+        limit=5
+    )
+    
+    memories_str = "\\n".join(
+        f"- [{r['type']}] {r['memory']}"
+        for r in search_results["results"]
+    )
+    
+    # 2. Build prompt with memories
+    system_prompt = f"""You are a helpful AI with access to user's memories.
 
-          <div className="p-5 rounded-lg border border-border bg-card">
-            <h3 className="text-lg font-medium text-foreground mb-2">Add</h3>
-            <p className="text-muted-foreground text-sm mb-2">Ingest the latest user–assistant turn, extract semantic facts and episodic bubbles, then store and link bubbles to existing memories.</p>
-            <p className="font-mono text-sm text-amber-600 dark:text-amber-400 mb-2">memory.add(messages: List[dict], conversation_id: int) → dict</p>
-            <p className="text-muted-foreground text-sm">Returns <code className="rounded bg-muted/50 px-1 font-mono">{"{\"semantic\": [...], \"bubbles\": [...]}"}</code>.</p>
-          </div>
+User Memories:
+{memories_str or 'No memories yet.'}
 
-          <div className="p-5 rounded-lg border border-border bg-card">
-            <h3 className="text-lg font-medium text-foreground mb-2">Search</h3>
-            <p className="text-muted-foreground text-sm mb-2">Retrieve memories relevant to a query for a given conversation, with scores and optional connected bubbles.</p>
-            <p className="font-mono text-sm text-amber-600 dark:text-amber-400 mb-2">memory.search(query, conversation_id, limit=10, include_connections=True) → dict</p>
-            <p className="text-muted-foreground text-sm">Returns <code className="rounded bg-muted/50 px-1 font-mono">{"{\"query\", \"total\", \"results\": [...]}"}</code>.</p>
-          </div>
+Use memories to give personalized responses."""
 
-          <div className="p-5 rounded-lg border border-border bg-card">
-            <h3 className="text-lg font-medium text-foreground mb-2">Update</h3>
-            <p className="text-muted-foreground text-sm mb-2">Change the text of an existing memory and refresh its embedding and vector index entry.</p>
-            <p className="font-mono text-sm text-amber-600 dark:text-amber-400">memory.update(memory_id: int, text: str) → Memory</p>
-          </div>
+    # 3. Call LLM
+    response = chat_client.chat.completions.create(
+        model="anthropic/claude-sonnet-4.5",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": message}
+        ]
+    )
+    
+    assistant_response = response.choices[0].message.content
+    
+    # 4. Store new memories
+    memory.add(
+        messages=[
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": assistant_response}
+        ],
+        conversation_id=conversation_id
+    )
+    
+    return assistant_response
 
-          <div className="p-5 rounded-lg border border-border bg-card">
-            <h3 className="text-lg font-medium text-foreground mb-2">Delete</h3>
-            <p className="text-muted-foreground text-sm mb-2">Soft-delete a memory: remove from search and vector index; row is marked inactive.</p>
-            <p className="font-mono text-sm text-amber-600 dark:text-amber-400 mb-2">memory.delete(memory_id: int) → dict</p>
-            <p className="text-muted-foreground text-sm">Returns <code className="rounded bg-muted/50 px-1 font-mono">{"{\"deleted_memory_id\": int}"}</code>.</p>
-          </div>
-        </section>
+# Chat loop
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == "exit":
+        break
+    print(f"AI: {chat_with_memories(user_input)}")`}
+              />
+            </section>
 
-        {/* Memory Types */}
-        <section id="memory-types" className="space-y-6 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Memory Types</h2>
-          <p className="text-muted-foreground">
-            Context Memory keeps <strong className="text-foreground">semantic facts</strong> (stable truths: name, preferences, role) and <strong className="text-foreground">episodic bubbles</strong> (time-bound moments: current task, “debugging X”). Bubbles can link to related facts; search can return “connected” results.
-          </p>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-muted/30 font-medium text-foreground">
-                  <th className="px-4 py-2 border-b border-border text-left">Aspect</th>
-                  <th className="px-4 py-2 border-b border-border text-left">Semantic</th>
-                  <th className="px-4 py-2 border-b border-border text-left">Episodic (bubbles)</th>
-                </tr>
-              </thead>
-              <tbody className="text-muted-foreground text-sm">
-                <tr><td className="px-4 py-2 border-b border-border">Stability</td><td className="px-4 py-2 border-b border-border">Stable over time</td><td className="px-4 py-2 border-b border-border">Time-bound</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Decay in search</td><td className="px-4 py-2 border-b border-border">None</td><td className="px-4 py-2 border-b border-border">Recency-based decay</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Linking</td><td className="px-4 py-2 border-b border-border">Can be referenced by bubbles</td><td className="px-4 py-2 border-b border-border">Auto-linked to related memories</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border">Typical count</td><td className="px-4 py-2 border-b border-border">Dozens per user</td><td className="px-4 py-2 border-b border-border">Grows with conversations</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+            {/* Configuration */}
+            <section id="configuration" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">Configuration Reference</h2>
+              <div className="rounded-xl border border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="px-4 py-3 text-left font-semibold border-b border-border">Parameter</th>
+                        <th className="px-4 py-3 text-left font-semibold border-b border-border">Required</th>
+                        <th className="px-4 py-3 text-left font-semibold border-b border-border">Default</th>
+                        <th className="px-4 py-3 text-left font-semibold border-b border-border">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">openai_api_key</td><td className="px-4 py-3 border-b border-border">Yes*</td><td className="px-4 py-3 border-b border-border">-</td><td className="px-4 py-3 border-b border-border">OpenAI API key</td></tr>
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">openrouter_api_key</td><td className="px-4 py-3 border-b border-border">Yes*</td><td className="px-4 py-3 border-b border-border">-</td><td className="px-4 py-3 border-b border-border">OpenRouter API key</td></tr>
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">llm_provider</td><td className="px-4 py-3 border-b border-border">No</td><td className="px-4 py-3 border-b border-border font-mono">openai</td><td className="px-4 py-3 border-b border-border">openai or openrouter</td></tr>
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">llm_model</td><td className="px-4 py-3 border-b border-border">No</td><td className="px-4 py-3 border-b border-border font-mono">gpt-4o-mini</td><td className="px-4 py-3 border-b border-border">LLM model for extraction</td></tr>
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">embedding_model</td><td className="px-4 py-3 border-b border-border">No</td><td className="px-4 py-3 border-b border-border font-mono">text-embedding-3-small</td><td className="px-4 py-3 border-b border-border">Embedding model</td></tr>
+                      <tr><td className="px-4 py-3 border-b border-border font-mono text-amber-600">database_url</td><td className="px-4 py-3 border-b border-border">No</td><td className="px-4 py-3 border-b border-border">SQLite</td><td className="px-4 py-3 border-b border-border">PostgreSQL URL</td></tr>
+                      <tr><td className="px-4 py-3 font-mono text-amber-600">debug</td><td className="px-4 py-3">No</td><td className="px-4 py-3 font-mono">False</td><td className="px-4 py-3">Enable debug logging</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3">
+                *One of <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">openai_api_key</code> or <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">openrouter_api_key</code> required based on <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">llm_provider</code>.
+              </p>
+            </section>
 
-        {/* Reference */}
-        <section id="reference" className="space-y-6 mb-12 scroll-mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">Reference</h2>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-muted/30 font-medium text-foreground">
-                  <th className="px-4 py-2 border-b border-border text-left">API</th>
-                  <th className="px-4 py-2 border-b border-border text-left">Description</th>
-                </tr>
-              </thead>
-              <tbody className="text-muted-foreground text-sm">
-                <tr><td className="px-4 py-2 border-b border-border font-mono">configure(**kwargs)</td><td className="px-4 py-2 border-b border-border">Set global config. Call before other ops.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">create_table()</td><td className="px-4 py-2 border-b border-border">Create DB tables. Idempotent.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">SessionLocal()</td><td className="px-4 py-2 border-b border-border">Return a new DB session.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">Memory(db)</td><td className="px-4 py-2 border-b border-border">Main memory interface; accepts a session.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">memory.add(messages, conversation_id)</td><td className="px-4 py-2 border-b border-border">Extract and store memories from the latest turn.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">memory.search(query, conversation_id, …)</td><td className="px-4 py-2 border-b border-border">Search by semantic similarity and optional connections.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">memory.update(memory_id, text)</td><td className="px-4 py-2 border-b border-border">Update a memory’s text and embedding.</td></tr>
-                <tr><td className="px-4 py-2 border-b border-border font-mono">memory.delete(memory_id)</td><td className="px-4 py-2 border-b border-border">Soft-delete and remove from vector index.</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <a href="https://pypi.org/project/contextmemory/" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300 underline transition-colors">PyPI — contextmemory</a>
-            <a href="https://github.com/samiksha0shukla/context-memory" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300 underline transition-colors">GitHub — context-memory</a>
-          </div>
-        </section>
-      </main>
+            {/* API Reference */}
+            <section id="api-reference" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">API Reference</h2>
+              
+              <div className="space-y-4">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <code className="text-amber-600 font-mono font-semibold">configure(**kwargs)</code>
+                  <p className="text-sm text-muted-foreground mt-2">Set global configuration. Call before any other operations.</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <code className="text-amber-600 font-mono font-semibold">create_table()</code>
+                  <p className="text-sm text-muted-foreground mt-2">Create all required database tables. Idempotent.</p>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <code className="text-amber-600 font-mono font-semibold">Memory(db: Session)</code>
+                  <p className="text-sm text-muted-foreground mt-2">Main memory interface. Methods:</p>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <code className="text-foreground font-mono shrink-0">add(messages, conversation_id)</code>
+                      <span className="text-muted-foreground">→ Extract & store memories</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <code className="text-foreground font-mono shrink-0">search(query, conversation_id, limit)</code>
+                      <span className="text-muted-foreground">→ Search memories</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <code className="text-foreground font-mono shrink-0">update(memory_id, text)</code>
+                      <span className="text-muted-foreground">→ Update a memory</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <code className="text-foreground font-mono shrink-0">delete(memory_id)</code>
+                      <span className="text-muted-foreground">→ Delete a memory</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <code className="text-amber-600 font-mono font-semibold">SessionLocal()</code>
+                  <p className="text-sm text-muted-foreground mt-2">Create a new database session.</p>
+                </div>
+              </div>
+            </section>
 
-      {/* Footer - same as landing */}
-      <footer className="border-t border-border/50 mt-20">
-        <div className="container mx-auto px-6 py-8">
+            {/* How It Works */}
+            <section id="how-it-works" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold mb-6">How It Works</h2>
+              
+              <div className="p-6 rounded-xl border border-border bg-card mb-6">
+                <div className="font-mono text-sm leading-loose text-center overflow-x-auto">
+                  <div className="inline-block text-left">
+                    <span className="text-amber-600">User Message</span>
+                    <span className="text-muted-foreground"> → </span>
+                    <span className="text-blue-600">Extraction (LLM)</span>
+                    <span className="text-muted-foreground"> → </span>
+                    <span className="text-green-600">Tool Classification (LLM)</span>
+                    <span className="text-muted-foreground"> → </span>
+                    <span className="text-purple-600">FAISS Index + DB</span>
+                    <div className="mt-2 pl-24 text-muted-foreground">
+                      ↓
+                      <span className="ml-24">↓</span>
+                    </div>
+                    <div className="pl-12">
+                      <span className="text-amber-500">Semantic Facts</span>
+                      <span className="ml-12 text-blue-500">ADD/UPDATE/REPLACE/NOOP</span>
+                    </div>
+                    <div className="pl-12">
+                      <span className="text-amber-500">Episodic Bubbles</span>
+                    </div>
+                    <div className="mt-2 pl-24 text-muted-foreground">↓</div>
+                    <div className="pl-6">
+                      <span className="text-cyan-600">Connection Finder</span>
+                      <span className="text-muted-foreground"> → Links bubbles to related facts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h4 className="font-semibold mb-2 text-sm">Contradiction Detection</h4>
+                  <p className="text-xs text-muted-foreground">&quot;I&apos;m vegetarian&quot; → &quot;I eat meat&quot; triggers REPLACE</p>
+                </div>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h4 className="font-semibold mb-2 text-sm">FAISS Search</h4>
+                  <p className="text-xs text-muted-foreground">O(log n) vector search instead of O(n) loops</p>
+                </div>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h4 className="font-semibold mb-2 text-sm">Smart Extraction</h4>
+                  <p className="text-xs text-muted-foreground">Only extracts from latest interaction, not context</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Links */}
+            <section className="mb-16 pt-8 border-t border-border">
+              <div className="flex flex-wrap gap-6">
+                <a 
+                  href="https://pypi.org/project/contextmemory/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
+                >
+                  PyPI Package
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://github.com/samiksha0shukla/context-memory" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
+                >
+                  GitHub Repository
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://github.com/samiksha0shukla/context-memory/issues" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-amber-600 hover:text-amber-500 transition-colors"
+                >
+                  Issue Tracker
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 mt-12">
+        <div className="container mx-auto px-4 md:px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">Built with ContextMemory - AI Memory Made Visual</p>
             <div className="flex items-center gap-6">

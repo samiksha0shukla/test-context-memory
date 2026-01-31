@@ -206,7 +206,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-green-500" />
-                  Open source
+                  Multi-Provider
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-green-500" />
