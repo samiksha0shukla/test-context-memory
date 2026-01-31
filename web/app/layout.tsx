@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ContextMemory - AI Memory Visualization",
   description: "Pickle OS-inspired memory bubbles for AI conversations",
+  icons: {
+    icon: "/contextmemorylogo.png",
+    apple: "/contextmemorylogo.png",
+  },
 };
 
 export default function RootLayout({
