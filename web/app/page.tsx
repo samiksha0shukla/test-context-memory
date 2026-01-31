@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Brain, ArrowRight, ChevronDown, LogOut, Mail, BookOpen, LayoutDashboard, ArrowUpRight, Zap, GitBranch } from "lucide-react";
+import { Brain, ArrowRight, ChevronDown, LogOut, Mail, BookOpen, LayoutDashboard, ArrowUpRight, Zap, GitBranch, Menu, X } from "lucide-react";
 import { DEMO_DATA } from "@/lib/demo-data";
 
 const LandingHeroGraph = dynamic(
@@ -20,6 +20,7 @@ export default function LandingPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showProductsDropdown, setShowProductsDropdown] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const productsDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +53,7 @@ export default function LandingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between relative">
+        <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative">
           <Logo size={32} />
 
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
@@ -110,7 +111,8 @@ export default function LandingPage() {
             </div>
           </nav>
 
-          <div className="flex items-center gap-4">
+          {/* Desktop Auth Actions */}
+          <div className="hidden md:flex items-center gap-4">
             {isLoading ? null : isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -161,41 +163,112 @@ export default function LandingPage() {
               </>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="md:hidden p-2 hover:bg-muted/50 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            {showMobileMenu ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {showMobileMenu && (
+          <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-md">
+            <div className="container mx-auto px-4 py-4 space-y-3">
+              <Link
+                href="/"
+                onClick={() => setShowMobileMenu(false)}
+                className="block py-2 text-sm font-medium text-foreground"
+              >
+                Home
+              </Link>
+              <Link
+                href="/docs"
+                onClick={() => setShowMobileMenu(false)}
+                className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Docs
+              </Link>
+              <Link
+                href="/demo"
+                onClick={() => setShowMobileMenu(false)}
+                className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Live Demo
+              </Link>
+              <Link
+                href="/dashboard"
+                onClick={() => setShowMobileMenu(false)}
+                className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Dashboard
+              </Link>
+              <div className="pt-3 border-t border-border/40 flex gap-2">
+                {isAuthenticated && user ? (
+                  <>
+                    <span className="text-sm text-muted-foreground py-2">{user.name}</span>
+                    <button
+                      onClick={() => { handleLogout(); setShowMobileMenu(false); }}
+                      className="text-sm text-red-500 py-2 ml-auto"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/signin" onClick={() => setShowMobileMenu(false)}>
+                      <Button variant="ghost" size="sm">Sign In</Button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setShowMobileMenu(false)}>
+                      <Button size="sm" className="rounded-full">Sign Up</Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
       <main className="relative">
-        <section className="container mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-12 md:gap-8">
+        <section className="container mx-auto px-4 md:px-6 pt-12 pb-12 md:pt-28 md:pb-24">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-8">
             {/* Left — text content */}
-            <div className="max-w-xl flex-shrink-0 space-y-8">
+            <div className="max-w-xl flex-shrink-0 space-y-6 md:space-y-8">
               {/* Eyebrow badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/8 border border-amber-500/15 text-amber-700 text-xs font-medium tracking-wide uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 Now in public beta
               </div>
 
-              <div className="space-y-5">
-                <h1 className="text-[2.75rem] md:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.08]">
+              <div className="space-y-4 md:space-y-5">
+                <h1 className="text-[2rem] sm:text-[2.5rem] md:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
                   Give Your AI Agents
                   <br />
                   <span className="landing-gradient-text">Context + Memory</span>
                 </h1>
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-md">
+                <p className="text-base md:text-xl text-muted-foreground leading-relaxed max-w-md">
                   Give your agents persistent context that grows, connects, and evolves with every conversation.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
                 <Link href="/dashboard">
-                  <Button size="lg" className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-7 h-12 text-sm font-semibold shadow-lg shadow-foreground/10">
+                  <Button size="lg" className="w-full sm:w-auto rounded-full bg-foreground text-background hover:bg-foreground/90 px-6 md:px-7 h-11 md:h-12 text-sm font-semibold shadow-lg shadow-foreground/10">
                     Start building
                     <ArrowRight className="w-4 h-4 ml-1.5" />
                   </Button>
                 </Link>
-                <Link href={isAuthenticated ? "/demo" : "/signin?redirect=/demo"}>
-                  <Button size="lg" variant="ghost" className="rounded-full h-12 text-sm font-semibold text-muted-foreground hover:text-foreground px-7 border border-border hover:border-border/80 hover:bg-muted/30">
+                <Link href="/demo">
+                  <Button size="lg" variant="ghost" className="w-full sm:w-auto rounded-full h-11 md:h-12 text-sm font-semibold text-muted-foreground hover:text-foreground px-6 md:px-7 border border-border hover:border-border/80 hover:bg-muted/30">
                     Live demo
                     <ArrowUpRight className="w-4 h-4 ml-1.5" />
                   </Button>
@@ -203,7 +276,7 @@ export default function LandingPage() {
               </div>
 
               {/* Quick proof points */}
-              <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 text-xs md:text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-green-500" />
                   Multi-Provider
