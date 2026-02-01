@@ -15,16 +15,24 @@ export function getBubbleRadius(importance: number): number {
   const clampedImportance = Math.max(0, Math.min(1, importance));
   return minRadius + clampedImportance * (maxRadius - minRadius);
 }
-
 /**
  * Get bubble color based on type and age
+ * @param type - "semantic" or "bubble"
+ * @param createdAt - creation date for age-based coloring
+ * @param useConstantColor - if true, uses constant green for episodic bubbles (for demo/landing)
  */
 export function getBubbleColor(
   type: "semantic" | "bubble",
-  createdAt?: string
+  createdAt?: string,
+  useConstantColor: boolean = false
 ): string {
   if (type === "semantic") {
     return "hsl(36, 100%, 70%)"; // Amber
+  }
+
+  // For demo/landing pages, use constant green (same as dashboard's active green)
+  if (useConstantColor) {
+    return "hsl(142, 76%, 36%)"; // Darker green - matches dashboard's recent bubbles
   }
 
   // For episodic bubbles, calculate age-based color

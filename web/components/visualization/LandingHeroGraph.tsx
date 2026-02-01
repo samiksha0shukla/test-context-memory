@@ -70,7 +70,8 @@ export function LandingHeroGraph({ data }: LandingHeroGraphProps) {
     const tooltip = createTooltip();
     tooltipRef.current = tooltip;
 
-    const nodeSelection = renderNodes(g, nodes, () => {}, setSelectedId);
+    // Render nodes with constant color (no age-based variation)
+    const nodeSelection = renderNodes(g, nodes, () => {}, setSelectedId, true);
     attachTooltipHandlers(nodeSelection, tooltip);
 
     svg.on("click", (event: MouseEvent) => {

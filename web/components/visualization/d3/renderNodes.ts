@@ -50,7 +50,8 @@ export function renderNodes(
   container: d3.Selection<SVGGElement, unknown, null, undefined>,
   nodes: MemoryNode[],
   onBubbleClick: (d: MemoryNode, event: MouseEvent) => void,
-  setSelectedId: (id: number) => void
+  setSelectedId: (id: number) => void,
+  useConstantColor: boolean = false
 ): d3.Selection<SVGGElement, MemoryNode, SVGGElement, unknown> {
   const nodeGroup = container.append("g").attr("class", "nodes-container");
 
@@ -68,7 +69,7 @@ export function renderNodes(
   node
     .append("circle")
     .attr("r", (d) => d.radius!)
-    .attr("fill", (d) => getBubbleColor(d.type, d.created_at))
+    .attr("fill", (d) => getBubbleColor(d.type, d.created_at, useConstantColor))
     .attr("stroke", "#fff")
     .attr("stroke-width", 2)
     .attr("stroke-opacity", 0.8);

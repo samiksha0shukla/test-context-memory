@@ -96,12 +96,13 @@ export function DemoGraph({ data }: DemoGraphProps) {
     const simulation = createSimulation(nodes, width, height);
     simulationRef.current = simulation;
 
-    // Render nodes
+    // Render nodes with constant color (no age-based variation)
     const nodeSelection = renderNodes(
       g,
       nodes,
       selection.selectBubble,
-      selection.setSelectedId
+      selection.setSelectedId,
+      true // useConstantColor - keeps all episodic bubbles green
     );
 
     // Attach tooltip handlers
