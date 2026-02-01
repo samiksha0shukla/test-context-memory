@@ -44,7 +44,8 @@ function isMobileDevice(): boolean {
  */
 export function attachTooltipHandlers(
   nodeSelection: d3.Selection<SVGGElement, MemoryNode, SVGGElement, unknown>,
-  tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
+  tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
+  useConstantColor: boolean = false
 ) {
   let longPressTimer: number | null = null;
   let isLongPress = false;
@@ -67,7 +68,7 @@ export function attachTooltipHandlers(
       .style("visibility", "visible")
       .style("opacity", "0")
       .html(`
-        <div style="font-weight: 600; margin-bottom: 8px; color: ${getBubbleColor(d.type, d.created_at)}; font-size: 14px;">
+        <div style="font-weight: 600; margin-bottom: 8px; color: ${getBubbleColor(d.type, d.created_at, useConstantColor)}; font-size: 14px;">
           Memory #${d.local_id} · ${d.type === "semantic" ? "Semantic Fact" : "Episodic Bubble"}
         </div>
         <div style="color: #f0f0f0; line-height: 1.6;">${truncateText(d.text, 200)}</div>

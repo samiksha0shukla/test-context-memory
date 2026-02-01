@@ -105,8 +105,8 @@ export function DemoGraph({ data }: DemoGraphProps) {
       true // useConstantColor - keeps all episodic bubbles green
     );
 
-    // Attach tooltip handlers
-    attachTooltipHandlers(nodeSelection, tooltip);
+    // Attach tooltip handlers with constant color
+    attachTooltipHandlers(nodeSelection, tooltip, true);
 
     // Update positions on simulation tick
     simulation.on("tick", () => {
