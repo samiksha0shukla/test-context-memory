@@ -9,6 +9,7 @@ interface MemoryDetailPanelProps {
   linkedMemories: Memory[];
   onClose: () => void;
   onSelectMemory: (id: number) => void;
+  useConstantColor?: boolean;
 }
 
 export function MemoryDetailPanel({
@@ -16,6 +17,7 @@ export function MemoryDetailPanel({
   linkedMemories,
   onClose,
   onSelectMemory,
+  useConstantColor = false,
 }: MemoryDetailPanelProps) {
   if (!memory) return null;
 
@@ -49,7 +51,8 @@ export function MemoryDetailPanel({
             style={{
               backgroundColor: getBubbleColor(
                 memory.type === "semantic" ? "semantic" : "bubble",
-                memory.created_at
+                memory.created_at,
+                useConstantColor
               ),
             }}
           >
@@ -126,7 +129,8 @@ export function MemoryDetailPanel({
                     style={{
                       backgroundColor: getBubbleColor(
                         linkedMemory.type === "semantic" ? "semantic" : "bubble",
-                        linkedMemory.created_at
+                        linkedMemory.created_at,
+                        useConstantColor
                       ),
                     }}
                   >

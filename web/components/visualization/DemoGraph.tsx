@@ -195,6 +195,7 @@ export function DemoGraph({ data }: DemoGraphProps) {
           linkedMemories={selection.linkedMemories}
           onClose={selection.closePanel}
           onSelectMemory={(id) => selection.selectLinkedMemory(id, selection.selectBubble)}
+          useConstantColor={true}
         />
       )}
     </div>
