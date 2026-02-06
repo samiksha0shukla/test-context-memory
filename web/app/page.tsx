@@ -243,11 +243,11 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-8">
             {/* Left — text content */}
             <div className="max-w-xl flex-shrink-0 space-y-6 md:space-y-8">
-              {/* Eyebrow badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/8 border border-amber-500/15 text-amber-700 text-xs font-medium tracking-wide uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Now in public beta
-              </div>
+              {/* Simple beta indicator */}
+              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Public beta
+              </span>
 
               <div className="space-y-4 md:space-y-5">
                 <h1 className="text-[2rem] sm:text-[2.5rem] md:text-[3.5rem] font-bold tracking-tight text-foreground leading-[1.1]">
@@ -398,60 +398,51 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             <div className="group landing-feature-card p-6 rounded-2xl border border-border/60 bg-card hover:border-amber-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-5 group-hover:bg-amber-500/15 transition-colors">
-                <Brain className="w-5 h-5 text-amber-600" />
+                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <circle cx="12" cy="12" r="3" />
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="19" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                  <circle cx="5" cy="12" r="2" />
+                  <line x1="12" y1="9" x2="12" y2="7" />
+                  <line x1="15" y1="12" x2="17" y2="12" />
+                  <line x1="12" y1="15" x2="12" y2="17" />
+                  <line x1="9" y1="12" x2="7" y2="12" />
+                </svg>
               </div>
-              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Living context graphs</h3>
+              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Bubbles, not rows</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Memories form a living graph. Semantic and episodic nodes connect and strengthen over time, building real understanding.
+                Memories live as semantic facts and episodic bubbles. They connect automatically — no graph database needed.
               </p>
             </div>
 
             <div className="group landing-feature-card p-6 rounded-2xl border border-border/60 bg-card hover:border-green-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/5">
               <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mb-5 group-hover:bg-green-500/15 transition-colors">
-                <GitBranch className="w-5 h-5 text-green-600" />
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
-              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Relationship-aware recall</h3>
+              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Search by meaning</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Retrieve memories by meaning, not keywords. Connected nodes surface the full context your agent needs.
+                FAISS-powered vector search finds related memories even when the words don&apos;t match. Fast, accurate, scalable.
               </p>
             </div>
 
             <div className="group landing-feature-card p-6 rounded-2xl border border-border/60 bg-card hover:border-blue-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-5 group-hover:bg-blue-500/15 transition-colors">
-                <Zap className="w-5 h-5 text-blue-500" />
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
-              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Three lines to integrate</h3>
+              <h3 className="text-[0.9375rem] font-semibold text-foreground mb-2">Works anywhere</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                pip install, initialize, and go. Works with any Python agent framework — LangChain, CrewAI, or your own.
+                pip install and you&apos;re done. SQLite out of the box, PostgreSQL when you scale. OpenAI or Claude via OpenRouter.
               </p>
             </div>
           </div>
         </section>
 
-        {/* CTA band */}
-        <section className="border-y border-border/40 bg-muted/20">
-          <div className="container mx-auto px-6 py-16 md:py-20 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-              Ready to give your agents memory?
-            </h2>
-            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
-              Start for free. No credit card, no vendor lock-in.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link href="/dashboard">
-                <Button size="lg" className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-7 h-12 text-sm font-semibold shadow-lg shadow-foreground/10">
-                  Get started free
-                  <ArrowRight className="w-4 h-4 ml-1.5" />
-                </Button>
-              </Link>
-              <Link href="/docs">
-                <Button size="lg" variant="ghost" className="rounded-full h-12 text-sm font-semibold text-muted-foreground hover:text-foreground px-7 border border-border hover:border-border/80 hover:bg-muted/30">
-                  Read the docs
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+
       </main>
 
       {/* Footer */}
@@ -475,24 +466,6 @@ export default function LandingPage() {
                 <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
-              </a>
-              <a
-                href="https://linkedin.com/company/contextmemory"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="LinkedIn"
-              >
-                <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-              <a
-                href="mailto:hello@contextmemory.ai"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Email"
-              >
-                <Mail className="w-[18px] h-[18px]" />
               </a>
             </div>
           </div>

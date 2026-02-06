@@ -21,15 +21,11 @@ export default function DemoPage() {
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Simplified Demo Navbar */}
       <nav className="flex items-center justify-between h-14 px-6 border-b border-border/50 bg-card/50 backdrop-blur-sm flex-shrink-0">
-        {/* Left: Logo */}
+        {/* Left: Logo and Title */}
         <div className="flex items-center gap-4">
           <Logo size={28} showText={false} />
-          
-          {/* Demo Mode Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-xs font-medium text-amber-500">Demo Mode</span>
-          </div>
+          <div className="h-5 w-px bg-border/60" />
+          <h1 className="text-sm font-semibold text-foreground">Demo Mode</h1>
         </div>
 
         {/* Right: Create Your Own / Dashboard Button */}
