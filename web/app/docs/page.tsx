@@ -183,6 +183,37 @@ function CodeBlock({ code, filename, language = "python" }: { code: string; file
   );
 }
 
+// Collapsible code block for large code examples
+function CollapsibleCodeBlock({ code, filename, language = "python", previewLines = 15 }: { code: string; filename?: string; language?: string; previewLines?: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const lines = code.split('\n');
+  const shouldCollapse = lines.length > previewLines;
+  const displayCode = isExpanded || !shouldCollapse ? code : lines.slice(0, previewLines).join('\n') + '\n...';
+  
+  return (
+    <div className="relative">
+      <CodeBlock code={displayCode} filename={filename} language={language} />
+      {shouldCollapse && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full py-2 text-sm text-muted-foreground hover:text-foreground bg-[#252525] border-t border-white/10 transition-colors flex items-center justify-center gap-2"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronDown className="w-4 h-4 rotate-180" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-4 h-4" />
+              Show full example ({lines.length} lines)
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function DocsPage() {
   const router = useRouter();
@@ -445,10 +476,10 @@ export default function DocsPage() {
           <main className="flex-1 min-w-0 max-w-4xl">
             {/* Hero */}
             <section className="mb-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-medium mb-6">
+              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground font-medium mb-6">
                 <BookOpen className="w-3.5 h-3.5" />
-                ContextMemory Documentation
-              </div>
+                Documentation
+              </span>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
                 Long-term memory for{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">
@@ -477,47 +508,64 @@ export default function DocsPage() {
             <section id="features" className="mb-16 scroll-mt-24">
               <h2 className="text-2xl font-bold mb-6">Features</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-amber-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
-                    <Brain className="w-5 h-5 text-amber-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-amber-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="9" cy="9" r="3" />
+                      <circle cx="15" cy="15" r="3" />
+                      <line x1="11" y1="11" x2="13" y2="13" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Dual Memory Types</h3>
-                  <p className="text-sm text-muted-foreground">Semantic facts + Episodic bubbles for complete context</p>
+                  <h3 className="font-semibold mb-1 text-sm">Dual Memory Types</h3>
+                  <p className="text-xs text-muted-foreground">Semantic facts + Episodic bubbles</p>
                 </div>
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-green-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
-                    <Zap className="w-5 h-5 text-green-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-green-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="11" cy="11" r="6" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Fast Search</h3>
-                  <p className="text-sm text-muted-foreground">FAISS-powered O(log n) vector search</p>
+                  <h3 className="font-semibold mb-1 text-sm">Fast Search</h3>
+                  <p className="text-xs text-muted-foreground">FAISS-powered O(log n) lookup</p>
                 </div>
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-blue-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                    <RefreshCw className="w-5 h-5 text-blue-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-blue-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Smart Updates</h3>
-                  <p className="text-sm text-muted-foreground">Automatic contradiction detection & replacement</p>
+                  <h3 className="font-semibold mb-1 text-sm">Smart Updates</h3>
+                  <p className="text-xs text-muted-foreground">Auto contradiction detection</p>
                 </div>
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-purple-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                    <GitBranch className="w-5 h-5 text-purple-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-purple-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M12 4v4m0 4v8m-4-4h8" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Memory Connections</h3>
-                  <p className="text-sm text-muted-foreground">Bubbles auto-link to related facts</p>
+                  <h3 className="font-semibold mb-1 text-sm">Auto Connections</h3>
+                  <p className="text-xs text-muted-foreground">Bubbles link to related facts</p>
                 </div>
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-pink-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center mb-4 group-hover:bg-pink-500/20 transition-colors">
-                    <Settings className="w-5 h-5 text-pink-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-pink-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Multi-Provider</h3>
-                  <p className="text-sm text-muted-foreground">OpenAI or OpenRouter (Claude, etc.)</p>
+                  <h3 className="font-semibold mb-1 text-sm">Multi-Provider</h3>
+                  <p className="text-xs text-muted-foreground">OpenAI or Claude</p>
                 </div>
-                <div className="p-5 rounded-xl border border-border bg-card hover:border-cyan-500/30 transition-colors group">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-colors">
-                    <Database className="w-5 h-5 text-cyan-600" />
+                <div className="p-5 rounded-xl border border-border bg-card hover:border-cyan-500/30 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+                    <svg className="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <line x1="3" y1="9" x2="21" y2="9" />
+                      <line x1="9" y1="21" x2="9" y2="9" />
+                    </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">Flexible Storage</h3>
-                  <p className="text-sm text-muted-foreground">SQLite (default) or PostgreSQL</p>
+                  <h3 className="font-semibold mb-1 text-sm">Flexible Storage</h3>
+                  <p className="text-xs text-muted-foreground">SQLite or PostgreSQL</p>
                 </div>
               </div>
             </section>
@@ -716,8 +764,9 @@ memory.add(
             {/* Full Example */}
             <section id="full-example" className="mb-16 scroll-mt-24">
               <h2 className="text-2xl font-bold mb-6">Full Example: Chat with Memory</h2>
-              <CodeBlock 
+              <CollapsibleCodeBlock 
                 filename="chat_with_memory.py"
+                previewLines={20}
                 code={`from openai import OpenAI
 from contextmemory import configure, create_table, Memory, SessionLocal
 
